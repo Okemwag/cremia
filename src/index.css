@@ -34,6 +34,21 @@ body {
 }
 
 button,
+input,
+select {
+  font: inherit;
+}
+
+button:not(:disabled),
+select:not(:disabled) {
+  cursor: pointer;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
