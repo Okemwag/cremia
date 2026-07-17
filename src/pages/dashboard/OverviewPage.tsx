@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import EmptyAccountState from "../../components/dashboard/EmptyAccountState";
 import Feedback from "../../components/dashboard/Feedback";
+import OnboardingBanner from "../../components/dashboard/OnboardingBanner";
 import PageHeader from "../../components/dashboard/PageHeader";
 import Sparkline from "../../components/dashboard/Sparkline";
 import Surface from "../../components/dashboard/Surface";
@@ -39,6 +40,7 @@ export default function OverviewPage() {
     return (
       <>
         <PageHeader eyebrow="Your dashboard" title="Good to see you." description="Connect your Deriv account and this page comes to life — live balance, markets and trades." />
+        <OnboardingBanner />
         <EmptyAccountState />
       </>
     );
@@ -62,6 +64,7 @@ export default function OverviewPage() {
         description="Your balance, your open trades, and today's markets — all at a glance."
         action={<Link to="/app/trade" className="inline-flex items-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white"><Zap size={15} /> New trade</Link>}
       />
+      <OnboardingBanner />
       {error && <div className="mt-6"><Feedback>{error}</Feedback></div>}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

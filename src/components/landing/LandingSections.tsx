@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const ASSET_ROOT = "https://qclay.design/lovable/synex";
+const ASSET_ROOT = "/assets/synex";
 
 type RevealProps = {
   children: ReactNode;
@@ -160,11 +160,11 @@ function IntroSection() {
   );
 }
 
-const holdings = [
-  { icon: "A", name: "Apple", ticker: "AAPL", allocation: "24.8%", value: "$284,920", gain: "+3.82%" },
-  { icon: "N", name: "Nvidia", ticker: "NVDA", allocation: "18.2%", value: "$209,340", gain: "+7.14%" },
-  { icon: "V", name: "Vanguard S&P", ticker: "VOO", allocation: "15.6%", value: "$179,400", gain: "+1.28%" },
-  { icon: "B", name: "Bitcoin", ticker: "BTC", allocation: "11.4%", value: "$131,120", gain: "+5.46%" },
+const openTrades = [
+  { icon: "V", market: "Volatility 75 Index", type: "Rise · 15 min", stake: "$25.00", payout: "$48.20", profit: "+$18.20", up: true },
+  { icon: "€", market: "EUR/USD", type: "Higher · 1 hour", stake: "$50.00", payout: "$92.30", profit: "+$12.75", up: true },
+  { icon: "G", market: "Gold", type: "Touch · 30 min", stake: "$10.00", payout: "$19.40", profit: "−$4.10", up: false },
+  { icon: "₿", market: "BTC/USD", type: "Rise · 5 min", stake: "$15.00", payout: "$28.90", profit: "+$7.75", up: true },
 ];
 
 function PortfolioPanel() {
@@ -172,34 +172,34 @@ function PortfolioPanel() {
     <div className="overflow-hidden rounded-[22px] border border-white/10 bg-[#101211] shadow-2xl shadow-black/30">
       <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-7">
         <div>
-          <p className="text-xs font-medium text-white/35">Total portfolio</p>
-          <p className="mt-1 text-2xl font-medium tracking-[-0.04em] text-white">$1,148,532.80</p>
+          <p className="text-xs font-medium text-white/35">Open profit right now</p>
+          <p className="mt-1 text-2xl font-medium tracking-[-0.04em] text-[#9ce879]">+$34.60</p>
         </div>
-        <button className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-white/65 transition-colors hover:bg-white/10">
-          1 Year
-        </button>
+        <span className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-white/65">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#9ce879]" /> 4 trades live
+        </span>
       </div>
       <div className="relative h-[190px] px-5 pb-4 pt-7 sm:h-[230px] sm:px-7">
         <div className="absolute left-7 top-6 flex items-center gap-2 text-xs font-medium text-[#9ce879]">
-          <ArrowUpRight size={14} /> +18.42%
+          <ArrowUpRight size={14} /> Updating live
         </div>
         <Sparkline path="M0 172 C18 160,28 168,46 143 S76 154,91 120 S123 128,140 91 S171 105,183 65 S207 46,220 18" />
       </div>
       <div className="border-t border-white/10 px-5 py-2 sm:px-7">
-        {holdings.map((holding) => (
-          <div key={holding.ticker} className="grid grid-cols-[1fr_auto] items-center border-b border-white/[0.07] py-4 last:border-0 sm:grid-cols-[1fr_90px_110px_75px]">
+        {openTrades.map((trade) => (
+          <div key={trade.market} className="grid grid-cols-[1fr_auto] items-center border-b border-white/[0.07] py-4 last:border-0 sm:grid-cols-[1fr_90px_110px_75px]">
             <div className="flex items-center gap-3">
               <span className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-xs font-semibold text-white">
-                {holding.icon}
+                {trade.icon}
               </span>
               <div>
-                <p className="text-sm font-medium text-white">{holding.name}</p>
-                <p className="text-[11px] text-white/30">{holding.ticker}</p>
+                <p className="text-sm font-medium text-white">{trade.market}</p>
+                <p className="text-[11px] text-white/30">{trade.type}</p>
               </div>
             </div>
-            <p className="hidden text-right text-xs text-white/35 sm:block">{holding.allocation}</p>
-            <p className="hidden text-right text-sm text-white/75 sm:block">{holding.value}</p>
-            <p className="text-right text-xs font-medium text-[#9ce879]">{holding.gain}</p>
+            <p className="hidden text-right text-xs text-white/35 sm:block">{trade.stake} stake</p>
+            <p className="hidden text-right text-sm text-white/75 sm:block">{trade.payout} payout</p>
+            <p className={`text-right text-xs font-medium ${trade.up ? "text-[#9ce879]" : "text-[#e49c91]"}`}>{trade.profit}</p>
           </div>
         ))}
       </div>
@@ -303,12 +303,12 @@ function CapabilitiesSection() {
 function AllocationDonut() {
   return (
     <div className="relative mx-auto grid aspect-square w-[240px] place-items-center sm:w-[280px]">
-      <div className="absolute inset-0 rounded-full bg-[conic-gradient(#111_0deg_112deg,#a8c99a_112deg_202deg,#d4b978_202deg_276deg,#b5b4d8_276deg_326deg,#d9d9d5_326deg_360deg)]" />
+      <div className="absolute inset-0 rounded-full bg-[conic-gradient(#111_0deg_150deg,#a8c99a_150deg_262deg,#d4b978_262deg_327deg,#b5b4d8_327deg_360deg)]" />
       <div className="absolute inset-[26px] rounded-full bg-[#f7f7f4]" />
       <div className="relative text-center">
-        <p className="text-xs font-medium text-black/35">Net worth</p>
-        <p className="mt-1 text-2xl font-medium tracking-[-0.04em]">$1.84M</p>
-        <p className="mt-2 text-xs font-semibold text-[#568348]">+12.8% YTD</p>
+        <p className="text-xs font-medium text-black/35">This month</p>
+        <p className="mt-1 text-2xl font-medium tracking-[-0.04em]">124 trades</p>
+        <p className="mt-2 text-xs font-semibold text-[#568348]">62% ended in profit</p>
       </div>
     </div>
   );
@@ -337,9 +337,9 @@ function AnalyticsSection() {
           <Reveal className="relative min-h-[520px] overflow-hidden rounded-[24px] bg-[#dce5d6] p-7 sm:p-10">
             <div className="relative z-10 flex items-start justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-black/35">Performance intelligence</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-black/35">Your results</p>
                 <h3 className="mt-3 max-w-[420px] text-[30px] font-medium leading-tight tracking-[-0.04em] sm:text-[38px]">
-                  Know what is driving your return.
+                  Know which trades actually make you money.
                 </h3>
               </div>
               <BarChart3 className="hidden text-black/35 sm:block" strokeWidth={1.4} />
@@ -347,10 +347,10 @@ function AnalyticsSection() {
             <div className="absolute inset-x-7 bottom-7 rounded-[18px] bg-[#f7f7f4] p-5 shadow-xl shadow-black/5 sm:inset-x-10 sm:bottom-10 sm:p-7">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-black/35">Portfolio growth</p>
-                  <p className="mt-1 text-2xl font-medium tracking-[-0.04em]">+$188,420</p>
+                  <p className="text-xs font-medium text-black/35">Realised profit · this month</p>
+                  <p className="mt-1 text-2xl font-medium tracking-[-0.04em]">+$412.60</p>
                 </div>
-                <span className="rounded-full bg-[#dce5d6] px-3 py-1.5 text-xs font-semibold text-[#426238]">+18.42%</span>
+                <span className="rounded-full bg-[#dce5d6] px-3 py-1.5 text-xs font-semibold text-[#426238]">62% win rate</span>
               </div>
               <div className="mt-6 h-[150px] text-black">
                 <Sparkline color="#111" path="M0 133 C19 123,31 137,50 111 S82 119,102 91 S128 102,146 68 S174 73,190 42 S208 35,220 10" />
@@ -362,8 +362,8 @@ function AnalyticsSection() {
             <Reveal delay={0.08} className="rounded-[24px] bg-[#f7f7f4] p-7 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] sm:p-9">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-black/35">Allocation</p>
-                  <h3 className="mt-3 text-[27px] font-medium tracking-[-0.04em]">Built for balance.</h3>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-black/35">Your markets</p>
+                  <h3 className="mt-3 text-[27px] font-medium tracking-[-0.04em]">Know your mix.</h3>
                 </div>
                 <ScanLine size={22} strokeWidth={1.5} className="text-black/30" />
               </div>
@@ -371,10 +371,10 @@ function AnalyticsSection() {
             </Reveal>
             <Reveal delay={0.14} className="grid grid-cols-[1fr_auto] items-end rounded-[24px] bg-[#171817] p-7 text-white sm:p-9">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/35">Smart signal</p>
-                <p className="mt-5 max-w-[290px] text-xl font-medium leading-snug tracking-[-0.025em]">Technology exposure moved above your target range.</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/35">Price alert</p>
+                <p className="mt-5 max-w-[290px] text-xl font-medium leading-snug tracking-[-0.025em]">Volatility 75 Index just crossed your 1,052.00 alert.</p>
                 <button className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-[#a9e58c]">
-                  Review insight <ChevronRight size={14} />
+                  Open your watchlist <ChevronRight size={14} />
                 </button>
               </div>
               <Sparkles className="mb-1 text-[#a9e58c]" size={25} strokeWidth={1.5} />
@@ -387,10 +387,10 @@ function AnalyticsSection() {
 }
 
 const markets = [
-  ["S&P 500", "5,623.91", "+0.84%", true],
-  ["NASDAQ", "18,028.76", "+1.12%", true],
-  ["FTSE 100", "8,241.62", "−0.18%", false],
-  ["NIKKEI 225", "39,667.07", "+0.56%", true],
+  ["VOLATILITY 75", "1,052.38", "+1.24%", true],
+  ["EUR/USD", "1.0872", "+0.31%", true],
+  ["GOLD", "2,384.10", "−0.42%", false],
+  ["BTC/USD", "64,210.55", "+2.18%", true],
 ] as const;
 
 function MarketsSection() {
@@ -444,6 +444,9 @@ function MarketsSection() {
               ))}
             </div>
           </div>
+          <p className="mt-8 text-center text-xs font-medium text-white/25">
+            Prices shown here are illustrative. Real quotes stream live once you're in the app.
+          </p>
         </Reveal>
       </div>
     </section>
@@ -553,13 +556,38 @@ function FinalCta() {
   );
 }
 
+type FooterLink = { label: string; href: string };
+
+const footerGroups: { heading: string; links: FooterLink[] }[] = [
+  {
+    heading: "Platform",
+    links: [
+      { label: "Overview", href: "/app" },
+      { label: "Markets", href: "/app/markets" },
+      { label: "Trade", href: "/app/trade" },
+      { label: "Portfolio", href: "/app/portfolio" },
+    ],
+  },
+  {
+    heading: "Company",
+    links: [
+      { label: "About", href: "#about" },
+      { label: "Learn", href: "/app/learn" },
+      { label: "Support", href: "/app/support" },
+    ],
+  },
+  {
+    heading: "Legal",
+    links: [
+      { label: "Security", href: "/legal/platform-disclosure" },
+      { label: "Privacy", href: "/legal/privacy" },
+      { label: "Terms", href: "/legal/terms" },
+      { label: "Disclosures", href: "/legal/risk" },
+    ],
+  },
+];
+
 function Footer() {
-  const legalLinks: Record<string, string> = {
-    Security: "/legal/platform-disclosure",
-    Privacy: "/legal/privacy",
-    Terms: "/legal/terms",
-    Disclosures: "/legal/risk",
-  };
   return (
     <footer className="bg-[#0a0b0b] px-5 pb-8 pt-16 text-white sm:px-10 md:pt-24">
       <div className="mx-auto max-w-[1440px] border-t border-white/10 pt-12">
@@ -570,19 +598,18 @@ function Footer() {
               Trading, made clear. Live markets and trusted execution, powered by Deriv.
             </p>
           </div>
-          {[
-            ["Platform", ["Overview", "Markets", "Trade", "Portfolio"]],
-            ["Company", ["About", "Journal", "Careers", "Contact"]],
-            ["Legal", ["Security", "Privacy", "Terms", "Disclosures"]],
-          ].map(([heading, links]) => (
-            <div key={heading as string}>
+          {footerGroups.map(({ heading, links }) => (
+            <div key={heading}>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/30">{heading}</p>
               <div className="mt-5 flex flex-col gap-3">
-                {(links as string[]).map((link) => (
-                  <a key={link} href={heading === "Legal" ? legalLinks[link] : `#${link.toLowerCase()}`} className="w-fit text-sm font-medium text-white/65 transition-colors hover:text-white">
-                    {link}
-                  </a>
-                ))}
+                {links.map(({ label, href }) => {
+                  const linkClass = "w-fit text-sm font-medium text-white/65 transition-colors hover:text-white";
+                  return href.startsWith("#") ? (
+                    <a key={label} href={href} className={linkClass}>{label}</a>
+                  ) : (
+                    <Link key={label} to={href} className={linkClass}>{label}</Link>
+                  );
+                })}
               </div>
             </div>
           ))}

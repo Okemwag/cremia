@@ -2,13 +2,93 @@ import { motion } from "framer-motion";
 import Navbar from "./Navbar";
 import StoneReveal from "./StoneReveal";
 
-const ASSET_ROOT = "https://qclay.design/lovable/synex";
+const ASSET_ROOT = "/assets/synex";
 
 const blurUp = (delay: number, duration: number, y: number, blur: number) => ({
   initial: { opacity: 0, y, filter: `blur(${blur}px)` },
   animate: { opacity: 1, y: 0, filter: "blur(0px)" },
   transition: { duration, delay, ease: "easeOut" as const },
 });
+
+const heroNav = ["Overview", "Markets", "Trade", "Portfolio", "Activity"];
+
+const heroMetrics = [
+  { label: "Available balance", value: "$10,247.82", note: "Live from Deriv" },
+  { label: "Open trades", value: "3", note: "Running right now" },
+  { label: "Open profit", value: "+$34.60", note: "If you closed now", positive: true },
+];
+
+function HeroDashboard() {
+  return (
+    <div
+      role="img"
+      aria-label="Preview of the Synex trading dashboard showing balance, open trades and a live market chart"
+      className="flex overflow-hidden rounded-t-xl bg-[#edede8] text-left text-[#0b0c0b] shadow-[0_-8px_80px_rgba(0,0,0,0.12),0_40px_120px_rgba(0,0,0,0.10)]"
+    >
+      <div className="hidden w-[150px] shrink-0 flex-col border-r border-black/[0.08] bg-[#f5f5f1] px-3 py-4 sm:flex">
+        <p className="px-2 text-sm font-bold tracking-[-0.06em]">SYNEX</p>
+        <div className="mt-4 space-y-1">
+          {heroNav.map((item, index) => (
+            <p
+              key={item}
+              className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold ${
+                index === 0 ? "bg-[#111310] text-white" : "text-black/45"
+              }`}
+            >
+              {item}
+            </p>
+          ))}
+        </div>
+      </div>
+
+      <div className="min-w-0 flex-1 p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-black/30">Trading account</p>
+            <p className="mt-0.5 text-[11px] font-semibold">VRTC 20841 · USD Practice</p>
+          </div>
+          <span className="flex items-center gap-1.5 rounded-full border border-black/[0.08] bg-white/60 px-2.5 py-1 text-[10px] font-semibold text-black/45">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#6ca95b]" /> Live
+          </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+          {heroMetrics.map((metric) => (
+            <div key={metric.label} className="rounded-xl border border-black/[0.06] bg-[#f7f7f4] p-3">
+              <p className="truncate text-[9px] font-semibold text-black/35">{metric.label}</p>
+              <p className={`mt-2 truncate text-sm font-medium tracking-[-0.03em] tabular-nums sm:text-lg ${metric.positive ? "text-[#4c7c40]" : ""}`}>
+                {metric.value}
+              </p>
+              <p className="mt-1 truncate text-[9px] font-medium text-black/30">{metric.note}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-3 rounded-xl border border-black/[0.06] bg-[#f7f7f4] p-3 sm:p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-black/30">Featured market</p>
+              <p className="mt-0.5 text-[12px] font-semibold sm:text-sm">Volatility 75 Index</p>
+            </div>
+            <span className="rounded-full bg-[#e0eadb] px-2.5 py-1 text-[9px] font-semibold text-[#46683c]">5 minute</span>
+          </div>
+          <svg viewBox="0 0 320 84" className="mt-3 h-[72px] w-full sm:h-[92px]" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0 62H320" stroke="#000" strokeOpacity="0.06" />
+            <path d="M0 34H320" stroke="#000" strokeOpacity="0.06" />
+            <path
+              d="M0 70 C22 64,34 72,52 58 S86 62,104 46 S138 52,158 38 S194 45,214 28 S252 33,272 18 S302 14,320 8"
+              fill="none"
+              stroke="#4c7c40"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Hero() {
   return (
@@ -77,11 +157,7 @@ export default function Hero() {
             ease: [0.22, 1, 0.36, 1],
           }}
         >
-          <img
-            src={`${ASSET_ROOT}/Dashboard.png`}
-            alt="Synex online trading dashboard"
-            className="h-auto w-full rounded-t-xl object-contain shadow-[0_-8px_80px_rgba(0,0,0,0.12),0_40px_120px_rgba(0,0,0,0.10)]"
-          />
+          <HeroDashboard />
         </motion.div>
       </div>
 

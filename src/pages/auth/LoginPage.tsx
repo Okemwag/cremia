@@ -63,7 +63,7 @@ export default function LoginPage() {
       <section className="relative w-full max-w-[420px] rounded-[30px] border border-black/[0.08] bg-[#fafaf7]/95 p-7 shadow-[0_30px_90px_rgba(20,20,17,0.10)] backdrop-blur sm:p-10">
         <Link to="/" className="inline-flex" aria-label="Synex home">
           <img
-            src="https://qclay.design/lovable/synex/logo.svg"
+            src="/assets/synex/logo.svg"
             alt="Synex"
             className="h-7 w-auto"
           />

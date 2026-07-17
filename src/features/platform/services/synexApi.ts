@@ -40,6 +40,13 @@ export type ActiveSymbol = {
   pip?: number;
 };
 
+type DerivActiveSymbol = Partial<ActiveSymbol> & {
+  underlying_symbol?: string;
+  underlying_symbol_name?: string;
+  underlying_symbol_type?: string;
+  pip_size?: number;
+};
+
 export type Candle = {
   epoch: number;
   open: number;
@@ -144,6 +151,7 @@ export type PortfolioContract = {
   contract_id: number;
   contract_type: string;
   underlying?: string;
+  underlying_symbol?: string;
   symbol?: string;
   buy_price: number;
   bid_price?: number;
@@ -261,14 +269,27 @@ export class SynexAPI {
   }
 
   async symbols() {
-    const result = await this.request<{ data: ActiveSymbol[] }>("/v1/markets/symbols", {}, false);
-    return result.data;
+    const result = await this.request<{ data: DerivActiveSymbol[] }>("/v1/markets/symbols", {}, false);
+    return result.data.flatMap<ActiveSymbol>((item) => {
+      const symbol = item.underlying_symbol || item.symbol;
+      if (!symbol) return [];
+      return [{
+        symbol,
+        display_name: item.underlying_symbol_name || item.display_name || symbol,
+        market: item.market || item.underlying_symbol_type || "other",
+        market_display_name: item.market_display_name,
+        submarket: item.submarket,
+        submarket_display_name: item.submarket_display_name,
+        exchange_is_open: item.exchange_is_open,
+        pip: item.pip_size ?? item.pip,
+      }];
+    });
   }
 
   async candles(symbol: string, granularity = 300, count = 120) {
     const params = new URLSearchParams({ symbol, granularity: String(granularity), count: String(count) });
-    const result = await this.request<{ data: { candles?: Candle[] } }>(`/v1/markets/candles?${params}`, {}, false);
-    return result.data.candles || [];
+    const result = await this.request<{ data: Candle[] | { candles?: Candle[] } }>(`/v1/markets/candles?${params}`, {}, false);
+    return Array.isArray(result.data) ? result.data : result.data.candles || [];
   }
 
   async tick(symbol: string) {

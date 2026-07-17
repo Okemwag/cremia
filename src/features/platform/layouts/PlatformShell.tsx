@@ -22,9 +22,11 @@ import { safeReturnTo } from "../../../config/auth";
 import { isSessionExpiredError } from "../../../config/authMessages";
 import { WorkspaceContext, type WorkspaceValue } from "../context/WorkspaceContext";
 import { accountStreamLabel, useAccountStream } from "../services/accountStream";
-import { apiErrorMessage, type SynexAccount, useSynexAPI } from "../services/synexApi";
+import { apiErrorMessage, type OnboardingStatus, type SynexAccount, useSynexAPI } from "../services/synexApi";
 
-const navItems = [
+const onboardingItem = { to: "/app/onboarding", label: "Get started", icon: UserRoundCheck, end: false };
+
+const baseNavItems = [
   { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/app/markets", label: "Markets", icon: BarChart3 },
   { to: "/app/watchlist", label: "Watchlist", icon: Star },
@@ -33,7 +35,6 @@ const navItems = [
   { to: "/app/activity", label: "Activity", icon: Activity },
   { to: "/app/funding", label: "Funding", icon: Landmark },
   { to: "/app/connect", label: "Accounts", icon: Settings },
-  { to: "/app/onboarding", label: "Get started", icon: UserRoundCheck },
   { to: "/app/learn", label: "Learn", icon: BookOpen },
   { to: "/app/notifications", label: "Notifications", icon: Bell },
   { to: "/app/support", label: "Support", icon: LifeBuoy },
@@ -58,13 +59,18 @@ export default function PlatformShell() {
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [accountError, setAccountError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [onboarding, setOnboarding] = useState<OnboardingStatus>();
 
   const refreshAccounts = useCallback(async () => {
     setLoadingAccounts(true);
     setAccountError("");
     try {
       await api.session();
-      const next = await api.accounts();
+      const [next, onboardingStatus] = await Promise.all([
+        api.accounts(),
+        api.onboardingStatus().catch(() => undefined),
+      ]);
+      setOnboarding(onboardingStatus);
       setAccounts(next);
       setActiveLoginID((current) => current && next.some((item) => item.login_id === current) ? current : next[0]?.login_id || "");
     } catch (error) {
@@ -121,10 +127,18 @@ export default function PlatformShell() {
     accountStreamStatus: accountStream.status,
     lastTransaction: accountStream.lastTransaction,
     positionUpdates: accountStream.positionUpdates,
-  }), [accounts, activeAccount, activeLoginID, loadingAccounts, refreshAccounts, accountStream.status, accountStream.lastTransaction, accountStream.positionUpdates]);
+    onboarding,
+  }), [accounts, activeAccount, activeLoginID, loadingAccounts, refreshAccounts, accountStream.status, accountStream.lastTransaction, accountStream.positionUpdates, onboarding]);
 
   if (isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <Navigate to="/login?returnTo=/app" replace />;
+
+  // Until setup is complete, "Get started" sits right under Overview with a
+  // reminder dot; afterwards it drops to the quieter spot above Learn.
+  const setupIncomplete = Boolean(onboarding && !onboarding.ready_for_live);
+  const navItems = setupIncomplete
+    ? [baseNavItems[0], onboardingItem, ...baseNavItems.slice(1)]
+    : [...baseNavItems.slice(0, 8), onboardingItem, ...baseNavItems.slice(8)];
 
   const sidebar = (
     <>
@@ -142,6 +156,9 @@ export default function PlatformShell() {
             className={({ isActive }) => `flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${isActive ? "bg-[#111310] text-white shadow-sm" : "text-black/45 hover:bg-black/[0.05] hover:text-black"}`}
           >
             <Icon size={17} strokeWidth={1.8} /> {label}
+            {to === "/app/onboarding" && setupIncomplete && (
+              <span className="ml-auto h-2 w-2 rounded-full bg-amber-500" aria-label="Setup incomplete" />
+            )}
           </NavLink>
         ))}
       </nav>

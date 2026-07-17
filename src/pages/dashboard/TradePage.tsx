@@ -1,6 +1,6 @@
 import { CircleDollarSign, LoaderCircle, Sparkles } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import EmptyAccountState from "../../components/dashboard/EmptyAccountState";
 import Feedback from "../../components/dashboard/Feedback";
 import PageHeader from "../../components/dashboard/PageHeader";
@@ -13,7 +13,7 @@ import { apiErrorMessage, type ActiveSymbol, type ContractOption, type OrderRece
 
 export default function TradePage() {
   const api = useSynexAPI();
-  const { activeAccount, activeLoginID } = useWorkspace();
+  const { activeAccount, activeLoginID, onboarding } = useWorkspace();
   const [params] = useSearchParams();
   const [symbols, setSymbols] = useState<ActiveSymbol[]>([]);
   const [symbol, setSymbol] = useState(params.get("symbol") || "");
@@ -159,6 +159,16 @@ export default function TradePage() {
   return (
     <>
       <PageHeader eyebrow="Place a trade" title="Trade" description="Pick a market, get a live price, and confirm only when you're happy with it. Nothing happens without your final say." />
+      {!activeAccount.is_virtual && onboarding && !onboarding.ready_for_live && (
+        <div className="mt-6">
+          <Feedback tone="info">
+            <span className="font-bold">Real-money trading is locked</span> until you finish setting up —
+            it takes about two minutes.{" "}
+            <Link to="/app/onboarding" className="font-bold underline underline-offset-2">Finish setup</Link>.
+            You can switch to your practice account and trade freely in the meantime.
+          </Feedback>
+        </div>
+      )}
       <div className="mt-8 grid gap-4 xl:grid-cols-[1fr_420px]">
         <Surface className="p-6 sm:p-8">
           <form onSubmit={requestProposal} className="grid gap-6">
