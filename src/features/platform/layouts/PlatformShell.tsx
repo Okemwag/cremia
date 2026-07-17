@@ -33,7 +33,7 @@ const navItems = [
   { to: "/app/activity", label: "Activity", icon: Activity },
   { to: "/app/funding", label: "Funding", icon: Landmark },
   { to: "/app/connect", label: "Accounts", icon: Settings },
-  { to: "/app/onboarding", label: "Onboarding", icon: UserRoundCheck },
+  { to: "/app/onboarding", label: "Get started", icon: UserRoundCheck },
   { to: "/app/learn", label: "Learn", icon: BookOpen },
   { to: "/app/notifications", label: "Notifications", icon: Bell },
   { to: "/app/support", label: "Support", icon: LifeBuoy },

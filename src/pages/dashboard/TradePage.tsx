@@ -83,11 +83,11 @@ export default function TradePage() {
         setPendingInstruction("");
         setProposal(undefined);
         if (order.status === "succeeded") {
-          setSuccess(`Order completed${finalReceipt.contract_id ? ` · Contract ${finalReceipt.contract_id}` : ""}.`);
+          setSuccess(`Trade placed${finalReceipt.contract_id ? ` · Contract ${finalReceipt.contract_id}` : ""}. You can follow it in your portfolio.`);
         } else if (order.status === "review") {
-          setError("We’re checking this order with Deriv. Please do not place another order on this account until the review is complete.");
+          setError("We’re double-checking this trade with Deriv. Please don’t place another trade on this account until it’s confirmed.");
         } else {
-          setError("This order was not completed. Request a new price before trying again.");
+          setError("This trade didn’t go through. Get a fresh price and try again.");
         }
       } catch {
         // Keep checking the same instruction. Submitting another order could duplicate it.
@@ -102,7 +102,7 @@ export default function TradePage() {
   }, [api, loadReceipt, pendingInstruction]);
 
   if (!activeAccount) {
-    return <><PageHeader eyebrow="Direct execution" title="Trade" description="Connect an account before requesting live contract prices." /><EmptyAccountState /></>;
+    return <><PageHeader eyebrow="Place a trade" title="Trade" description="Connect your Deriv account to get live prices and start trading." /><EmptyAccountState /></>;
   }
 
   const requestProposal = async (event: FormEvent) => {
@@ -119,18 +119,18 @@ export default function TradePage() {
   const execute = async () => {
     if (!proposal || secondsRemaining <= 0) {
       setProposal(undefined);
-      setError("That price has expired. Request a new price before buying.");
+      setError("That quote expired — prices move fast. Get a fresh price and try again.");
       return;
     }
     if (!activeAccount.is_virtual && !realMoneyConfirmed) {
-      setError("Confirm that you understand the real-money risk before placing this order.");
+      setError("Tick the confirmation box first — this trade uses real money you could lose.");
       return;
     }
     setLoading(true); setError("");
     try {
       const result = await api.buy({ login_id: activeLoginID, proposal_id: proposal.id, max_price: proposal.ask_price, symbol, contract_type: contractType, currency: activeAccount.currency, real_money_confirmed: !activeAccount.is_virtual && realMoneyConfirmed }, instructionKey);
       const finalReceipt = await loadReceipt(instructionKey);
-      setSuccess(`Order completed${finalReceipt.contract_id || result.contract_id ? ` · Contract ${String(finalReceipt.contract_id || result.contract_id)}` : ""}.`);
+      setSuccess(`Trade placed${finalReceipt.contract_id || result.contract_id ? ` · Contract ${String(finalReceipt.contract_id || result.contract_id)}` : ""}. You can follow it in your portfolio.`);
       setProposal(undefined);
     } catch (reason) {
       try {
@@ -142,11 +142,11 @@ export default function TradePage() {
           const finalReceipt = await loadReceipt(instructionKey);
           setProposal(undefined);
           if (order.status === "succeeded") {
-            setSuccess(`Order completed${finalReceipt.contract_id ? ` · Contract ${finalReceipt.contract_id}` : ""}.`);
+            setSuccess(`Trade placed${finalReceipt.contract_id ? ` · Contract ${finalReceipt.contract_id}` : ""}. You can follow it in your portfolio.`);
           } else if (order.status === "review") {
-            setError("We’re checking this order with Deriv. Please do not place another order on this account until the review is complete.");
+            setError("We’re double-checking this trade with Deriv. Please don’t place another trade on this account until it’s confirmed.");
           } else {
-            setError("This order was not completed. Request a new price before trying again.");
+            setError("This trade didn’t go through. Get a fresh price and try again.");
           }
         }
       } catch {
@@ -158,25 +158,25 @@ export default function TradePage() {
 
   return (
     <>
-      <PageHeader eyebrow="Direct execution" title="Trade" description="Request a live price from Deriv, review the terms, then explicitly confirm execution." />
+      <PageHeader eyebrow="Place a trade" title="Trade" description="Pick a market, get a live price, and confirm only when you're happy with it. Nothing happens without your final say." />
       <div className="mt-8 grid gap-4 xl:grid-cols-[1fr_420px]">
         <Surface className="p-6 sm:p-8">
           <form onSubmit={requestProposal} className="grid gap-6">
-            <div className="flex items-center justify-between rounded-2xl bg-[#171917] p-5 text-white"><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-white/35">Indicative market price</p><p className="mt-2 text-sm font-semibold">{selectedMarket?.display_name || symbol || "Select a market"}</p></div><div className="text-right"><div className="flex items-center justify-end gap-2 text-xs font-semibold text-white/40"><span className={`h-2 w-2 rounded-full ${market.status === "connected" ? "bg-[#8ac777]" : "animate-pulse bg-amber-400"}`}/>{marketStreamLabel(market.status)}</div><p className="mt-2 text-2xl font-medium tabular-nums">{formatMarketQuote(market.tick?.quote, market.tick?.pip_size ?? selectedMarket?.pip ?? 2)}</p></div></div>
-            <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Instrument<select value={symbol} onChange={(event) => setSymbol(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none focus:border-black/30">{symbols.map((item) => <option key={item.symbol} value={item.symbol}>{item.display_name} · {item.symbol}</option>)}</select></label>
-            <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Contract<select value={contractType} onChange={(event) => setContractType(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none focus:border-black/30">{contracts.map((item) => <option key={item.contract_type} value={item.contract_type}>{item.contract_display || item.contract_type}</option>)}</select><span className="mt-2 block text-xs font-normal normal-case text-black/35">Only contracts currently reported for this symbol are shown.</span></label>
+            <div className="flex items-center justify-between rounded-2xl bg-[#171917] p-5 text-white"><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-white/35">Market price now</p><p className="mt-2 text-sm font-semibold">{selectedMarket?.display_name || symbol || "Pick a market"}</p></div><div className="text-right"><div className="flex items-center justify-end gap-2 text-xs font-semibold text-white/40"><span className={`h-2 w-2 rounded-full ${market.status === "connected" ? "bg-[#8ac777]" : "animate-pulse bg-amber-400"}`}/>{marketStreamLabel(market.status)}</div><p className="mt-2 text-2xl font-medium tabular-nums">{formatMarketQuote(market.tick?.quote, market.tick?.pip_size ?? selectedMarket?.pip ?? 2)}</p></div></div>
+            <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Market<select value={symbol} onChange={(event) => setSymbol(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none focus:border-black/30">{symbols.map((item) => <option key={item.symbol} value={item.symbol}>{item.display_name} · {item.symbol}</option>)}</select></label>
+            <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Trade type<select value={contractType} onChange={(event) => setContractType(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none focus:border-black/30">{contracts.map((item) => <option key={item.contract_type} value={item.contract_type}>{item.contract_display || item.contract_type}</option>)}</select><span className="mt-2 block text-xs font-normal normal-case text-black/35">Showing the trade types available for this market right now.</span></label>
             <div className="grid gap-4 sm:grid-cols-3">
               <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Stake<input type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold outline-none"/></label>
               <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Duration<input type="number" min="1" value={duration} onChange={(event) => setDuration(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold outline-none"/></label>
               <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Unit<select value={durationUnit} onChange={(event) => setDurationUnit(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none"><option value="t">Ticks</option><option value="m">Minutes</option><option value="h">Hours</option><option value="d">Days</option></select></label>
             </div>
-            {error && <Feedback>{error}</Feedback>}{success && <Feedback tone="success">{success}</Feedback>}{pendingInstruction && <Feedback tone="info">Your order is still being checked. Keep this page open and do not submit it again.</Feedback>}
-            <button disabled={loading || !contractType || Boolean(pendingInstruction)} className="flex items-center justify-center gap-2 rounded-full bg-[#111310] px-5 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">{loading ? <LoaderCircle size={16} className="animate-spin"/> : <Sparkles size={16}/>} Request live price</button>
+            {error && <Feedback>{error}</Feedback>}{success && <Feedback tone="success">{success}</Feedback>}{pendingInstruction && <Feedback tone="info">Your trade is being confirmed. Keep this page open — don’t submit it again.</Feedback>}
+            <button disabled={loading || !contractType || Boolean(pendingInstruction)} className="flex items-center justify-center gap-2 rounded-full bg-[#111310] px-5 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">{loading ? <LoaderCircle size={16} className="animate-spin"/> : <Sparkles size={16}/>} Get my live price</button>
           </form>
         </Surface>
         <div className="space-y-4">
           <Surface className="p-6 sm:p-8">
-            {receipt ? <TradeReceipt receipt={receipt} feeDisclosure={feeDisclosure} /> : <p className="text-xs font-bold uppercase tracking-[.14em] text-black/30">Live proposal</p>}
+            {receipt ? <TradeReceipt receipt={receipt} feeDisclosure={feeDisclosure} /> : <p className="text-xs font-bold uppercase tracking-[.14em] text-black/30">Your quote</p>}
             {!receipt && proposal ? (
               <TradeQuote
                 proposal={proposal}
@@ -188,9 +188,9 @@ export default function TradePage() {
                 onRealMoneyConfirmed={setRealMoneyConfirmed}
                 onExecute={() => void execute()}
               />
-            ) : !receipt ? <div className="grid min-h-[240px] place-items-center text-center"><div><CircleDollarSign className="mx-auto text-black/20"/><p className="mt-4 text-sm font-medium text-black/35">Configure the contract to request a live Deriv proposal.</p></div></div> : null}
+            ) : !receipt ? <div className="grid min-h-[240px] place-items-center text-center"><div><CircleDollarSign className="mx-auto text-black/20"/><p className="mt-4 text-sm font-medium text-black/35">Set up your trade on the left and your live quote will appear here.</p></div></div> : null}
           </Surface>
-          <Feedback tone="info"><span className="font-bold">Risk notice:</span> Trading leveraged or short-duration products can result in loss. Use a Deriv practice account first and never stake money you cannot afford to lose.</Feedback>
+          <Feedback tone="info"><span className="font-bold">A word on risk:</span> Fast-moving trades can lose money just as quickly as they win it. Practise on your free demo account first, and never stake money you can't afford to lose.</Feedback>
         </div>
       </div>
     </>

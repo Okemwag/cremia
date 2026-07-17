@@ -109,9 +109,9 @@ export default function MarketToolsPage() {
     <>
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[.17em] text-black/30">Personal market desk</p>
+          <p className="text-[11px] font-bold uppercase tracking-[.17em] text-black/30">Your market radar</p>
           <h1 className="mt-2 text-[36px] font-medium leading-none tracking-[-.05em] sm:text-[44px]">Watchlist & alerts</h1>
-          <p className="mt-3 max-w-[620px] text-sm font-medium leading-relaxed text-black/40 sm:text-base">Track the instruments that matter and keep durable price-alert instructions in your Synex account.</p>
+          <p className="mt-3 max-w-[620px] text-sm font-medium leading-relaxed text-black/40 sm:text-base">Keep an eye on the markets you care about, and let Synex tell you the moment a price hits your target.</p>
         </div>
         <button type="button" onClick={() => void load()} className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/50 px-5 py-3 text-sm font-semibold"><RefreshCw size={15}/> Refresh</button>
       </div>
@@ -135,13 +135,13 @@ export default function MarketToolsPage() {
                 </div>;
               })}
             </div>
-          ) : <div className="grid min-h-[360px] place-items-center p-8 text-center"><div><Star className="mx-auto text-black/20"/><h3 className="mt-4 text-xl font-medium">Your watchlist is empty</h3><p className="mt-2 text-sm text-black/40">Choose an instrument on the right to start tracking it.</p></div></div>}
+          ) : <div className="grid min-h-[360px] place-items-center p-8 text-center"><div><Star className="mx-auto text-black/20"/><h3 className="mt-4 text-xl font-medium">Your watchlist is empty</h3><p className="mt-2 text-sm text-black/40">Pick a market on the right and start watching it here.</p></div></div>}
         </section>
 
         <div className="space-y-4">
           <section className="rounded-[22px] border border-black/[.07] bg-[#f7f7f4] p-6">
             <h2 className="text-lg font-semibold tracking-[-.03em]">Add a market</h2>
-            <label className="mt-5 flex items-center gap-3 rounded-xl bg-black/[.04] px-4 py-3"><Search size={15} className="text-black/30"/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search instruments" className="w-full bg-transparent text-sm outline-none"/></label>
+            <label className="mt-5 flex items-center gap-3 rounded-xl bg-black/[.04] px-4 py-3"><Search size={15} className="text-black/30"/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search markets" className="w-full bg-transparent text-sm outline-none"/></label>
             <select value={selectedSymbol} onChange={(event) => setSelectedSymbol(event.target.value)} className="mt-3 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold outline-none">{filteredSymbols.map((item) => <option key={item.symbol} value={item.symbol}>{item.display_name} · {item.symbol}</option>)}</select>
             <button type="button" disabled={busy || !selected || alreadySaved} onClick={() => void add()} className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#111310] px-5 py-3.5 text-sm font-semibold text-white disabled:opacity-35"><Plus size={15}/>{alreadySaved ? "Already saved" : "Add to watchlist"}</button>
           </section>
@@ -158,8 +158,8 @@ export default function MarketToolsPage() {
       </div>
 
       <section className="mt-4 overflow-hidden rounded-[22px] border border-black/[.07] bg-[#f7f7f4]">
-        <div className="border-b border-black/[.07] p-6"><h2 className="text-lg font-semibold tracking-[-.03em]">Configured alerts</h2><p className="mt-1 text-xs text-black/35">Persistent alert delivery workers will connect to notification channels in the operations phase.</p></div>
-        {alerts.length ? <div className="divide-y divide-black/[.06]">{alerts.map((alert) => <div key={alert.id} className="flex items-center gap-4 px-6 py-5"><span className={`grid h-10 w-10 place-items-center rounded-full ${alert.direction === "above" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>{alert.direction === "above" ? <TrendingUp size={17}/> : <TrendingDown size={17}/>}</span><div className="flex-1"><p className="text-sm font-semibold">{alert.display_name}</p><p className="mt-1 text-xs text-black/35">Notify when price moves {alert.direction} {alert.target_price}</p></div><span className="rounded-full bg-black/[.05] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.1em] text-black/40">{alert.is_active ? "Active" : "Triggered"}</span><button type="button" disabled={busy} onClick={() => void deleteAlert(alert.id)} className="grid h-9 w-9 place-items-center rounded-full border border-black/10 text-black/35 hover:text-red-600" aria-label="Delete alert"><Trash2 size={14}/></button></div>)}</div> : <p className="p-8 text-center text-sm font-medium text-black/35">No price alerts configured.</p>}
+        <div className="border-b border-black/[.07] p-6"><h2 className="text-lg font-semibold tracking-[-.03em]">Your alerts</h2><p className="mt-1 text-xs text-black/35">When a price hits your target, you'll hear about it in your notifications.</p></div>
+        {alerts.length ? <div className="divide-y divide-black/[.06]">{alerts.map((alert) => <div key={alert.id} className="flex items-center gap-4 px-6 py-5"><span className={`grid h-10 w-10 place-items-center rounded-full ${alert.direction === "above" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>{alert.direction === "above" ? <TrendingUp size={17}/> : <TrendingDown size={17}/>}</span><div className="flex-1"><p className="text-sm font-semibold">{alert.display_name}</p><p className="mt-1 text-xs text-black/35">Notify when price moves {alert.direction} {alert.target_price}</p></div><span className="rounded-full bg-black/[.05] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.1em] text-black/40">{alert.is_active ? "Active" : "Triggered"}</span><button type="button" disabled={busy} onClick={() => void deleteAlert(alert.id)} className="grid h-9 w-9 place-items-center rounded-full border border-black/10 text-black/35 hover:text-red-600" aria-label="Delete alert"><Trash2 size={14}/></button></div>)}</div> : <p className="p-8 text-center text-sm font-medium text-black/35">No alerts yet. Set one up above and we'll watch the market for you.</p>}
       </section>
     </>
   );

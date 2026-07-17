@@ -38,18 +38,18 @@ export default function TradeQuote({
         </span>
       </div>
 
-      <p className="mt-6 text-sm font-medium text-black/40">Amount at risk</p>
+      <p className="mt-6 text-sm font-medium text-black/40">The most you can lose</p>
       <p className="mt-1 text-[38px] font-medium tracking-[-.05em]">{formatMoney(maximumLoss, currency)}</p>
 
       <dl className="mt-5 divide-y divide-black/[.07] border-y border-black/[.07] text-sm">
-        <div className="flex justify-between py-3.5"><dt className="text-black/40">Purchase price</dt><dd className="font-semibold">{formatMoney(proposal.ask_price, currency)}</dd></div>
-        {proposal.payout !== undefined && <div className="flex justify-between py-3.5"><dt className="text-black/40">Potential payout</dt><dd className="font-semibold">{formatMoney(proposal.payout, currency)}</dd></div>}
-        {potentialProfit !== undefined && <div className="flex justify-between py-3.5"><dt className="text-black/40">Potential profit</dt><dd className={`font-semibold ${potentialProfit >= 0 ? "text-[#568f47]" : "text-red-600"}`}>{formatMoney(potentialProfit, currency)}</dd></div>}
-        <div className="flex justify-between py-3.5"><dt className="text-black/40">Synex fee or markup</dt><dd className="font-semibold">{formatMoney(proposal.synex_fee ?? 0, currency)}</dd></div>
+        <div className="flex justify-between py-3.5"><dt className="text-black/40">This trade costs</dt><dd className="font-semibold">{formatMoney(proposal.ask_price, currency)}</dd></div>
+        {proposal.payout !== undefined && <div className="flex justify-between py-3.5"><dt className="text-black/40">You could get back</dt><dd className="font-semibold">{formatMoney(proposal.payout, currency)}</dd></div>}
+        {potentialProfit !== undefined && <div className="flex justify-between py-3.5"><dt className="text-black/40">You could make</dt><dd className={`font-semibold ${potentialProfit >= 0 ? "text-[#568f47]" : "text-red-600"}`}>{formatMoney(potentialProfit, currency)}</dd></div>}
+        <div className="flex justify-between py-3.5"><dt className="text-black/40">Synex fee</dt><dd className="font-semibold">{formatMoney(proposal.synex_fee ?? 0, currency)}</dd></div>
       </dl>
 
-      <p className="mt-5 text-xs font-medium leading-relaxed text-black/45">{proposal.longcode || "Review this price and confirm before the timer ends."}</p>
-      <p className="mt-3 flex items-center gap-2 text-xs font-semibold text-black/35"><Check size={13} /> Executable price supplied by Deriv</p>
+      <p className="mt-5 text-xs font-medium leading-relaxed text-black/45">{proposal.longcode || "Happy with this price? Confirm before the timer runs out."}</p>
+      <p className="mt-3 flex items-center gap-2 text-xs font-semibold text-black/35"><Check size={13} /> Real price, locked in by Deriv</p>
 
       {!isVirtual && (
         <label className="mt-5 flex cursor-pointer gap-3 rounded-2xl border border-amber-900/15 bg-amber-50 p-4 text-sm font-medium leading-relaxed text-amber-950/75">
@@ -59,7 +59,7 @@ export default function TradeQuote({
             onChange={(event) => onRealMoneyConfirmed(event.target.checked)}
             className="mt-1 h-4 w-4 accent-[#111310]"
           />
-          <span><strong className="flex items-center gap-1.5 text-amber-950"><ShieldAlert size={15} /> Real-money confirmation</strong>I understand that I may lose the full amount at risk.</span>
+          <span><strong className="flex items-center gap-1.5 text-amber-950"><ShieldAlert size={15} /> This is real money</strong>I understand I could lose the full amount shown above.</span>
         </label>
       )}
 
@@ -70,7 +70,7 @@ export default function TradeQuote({
         className={`mt-6 flex w-full items-center justify-center gap-2 rounded-full px-5 py-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-45 ${isVirtual ? "bg-[#6fa45e]" : "bg-[#111310]"}`}
       >
         <Zap size={16} />
-        {secondsRemaining <= 0 ? "Request a new price" : isVirtual ? "Confirm practice order" : "Confirm real-money order"}
+        {secondsRemaining <= 0 ? "Get a fresh price" : isVirtual ? "Place practice trade" : "Place real-money trade"}
       </button>
     </>
   );

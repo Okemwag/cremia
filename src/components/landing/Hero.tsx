@@ -50,8 +50,8 @@ export default function Hero() {
           {...blurUp(0.45, 0.7, 20, 8)}
           className="mt-4 max-w-[460px] text-sm font-medium leading-relaxed text-black/20 sm:text-base md:mt-5 md:text-lg"
         >
-          Explore live markets, connect your Deriv account, and move from price
-          discovery to contract execution in one focused workspace.
+          Watch live markets, spot your moment, and place your trade — all in
+          one calm, clutter-free space. Just connect your Deriv account and go.
         </motion.p>
       </div>
 

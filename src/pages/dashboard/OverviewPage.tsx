@@ -38,7 +38,7 @@ export default function OverviewPage() {
   if (!activeAccount) {
     return (
       <>
-        <PageHeader eyebrow="Synex workspace" title="Good to see you." description="Connect a trading account to activate your live workspace." />
+        <PageHeader eyebrow="Your dashboard" title="Good to see you." description="Connect your Deriv account and this page comes to life — live balance, markets and trades." />
         <EmptyAccountState />
       </>
     );
@@ -48,18 +48,18 @@ export default function OverviewPage() {
   const balance = Number(activeAccount.balance || 0);
   const openProfit = livePositions.reduce((sum, item) => sum + Number(item.profit || 0), 0);
   const metrics = [
-    { label: "Available balance", value: formatMoney(balance, activeAccount.currency), icon: CircleDollarSign, note: activeAccount.balance_fresh ? "Updated from Deriv" : "Last known balance" },
-    { label: "Open positions", value: String(livePositions.length), icon: WalletCards, note: livePositions.length ? "Currently active" : "No market exposure" },
-    { label: "Open profit", value: formatMoney(openProfit, activeAccount.currency), icon: ArrowUpRight, note: "Unrealised result" },
+    { label: "Available balance", value: formatMoney(balance, activeAccount.currency), icon: CircleDollarSign, note: activeAccount.balance_fresh ? "Live from Deriv" : "Last known balance" },
+    { label: "Open trades", value: String(livePositions.length), icon: WalletCards, note: livePositions.length ? "Running right now" : "Nothing at risk right now" },
+    { label: "Open profit", value: formatMoney(openProfit, activeAccount.currency), icon: ArrowUpRight, note: "If you closed everything now" },
     { label: "Account", value: activeAccount.is_virtual ? "Practice" : "Real", icon: ShieldCheck, note: activeAccount.login_id },
   ];
 
   return (
     <>
       <PageHeader
-        eyebrow="Synex workspace"
+        eyebrow="Your dashboard"
         title="Market overview"
-        description="A clear view of your connected Deriv account, open exposure and the markets available to trade."
+        description="Your balance, your open trades, and today's markets — all at a glance."
         action={<Link to="/app/trade" className="inline-flex items-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white"><Zap size={15} /> New trade</Link>}
       />
       {error && <div className="mt-6"><Feedback>{error}</Feedback></div>}
@@ -83,7 +83,7 @@ export default function OverviewPage() {
           <Sparkline candles={candles} className="mt-7 h-[220px] w-full" />
         </Surface>
         <Surface className="p-6 sm:p-8">
-          <div className="flex items-center justify-between"><h2 className="text-lg font-semibold tracking-[-.03em]">Market access</h2><BarChart3 size={18} className="text-black/30" /></div>
+          <div className="flex items-center justify-between"><h2 className="text-lg font-semibold tracking-[-.03em]">Jump into a market</h2><BarChart3 size={18} className="text-black/30" /></div>
           <div className="mt-5 space-y-1">
             {symbols.slice(0, 5).map((symbol) => (
               <Link key={symbol.symbol} to={`/app/trade?symbol=${encodeURIComponent(symbol.symbol)}`} className="flex items-center justify-between rounded-xl px-3 py-3 transition-colors hover:bg-black/[.04]">

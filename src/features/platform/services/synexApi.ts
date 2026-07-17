@@ -526,14 +526,14 @@ export function apiErrorMessage(error: unknown) {
   if (isSessionExpiredError(error)) return "Your session has ended. Please sign in again.";
   if (error instanceof APIError) {
     const code = error.code.toLowerCase();
-    if (error.code === "quote_expired" || error.code === "price_limit_exceeded") return "That price is no longer available. Request a new price before buying.";
-    if (error.code === "order_status_pending") return "Your order is still being checked. Do not submit it again; review your portfolio shortly.";
-    if (error.code === "account_order_under_review") return "A recent order on this account is still being checked. Wait for it to be resolved before placing another order.";
-    if (error.code === "order_rejected") return "Deriv did not accept the order. Request a new price before trying again.";
-    if (error.code === "real_money_confirmation_required") return "Confirm that you understand the real-money risk before placing this order.";
-    if (code.includes("insufficient") || code.includes("balance")) return "Your account does not have enough available balance for this order.";
-    if (code.includes("market") && code.includes("closed")) return "This market is currently closed. Choose another market or try again later.";
-    if (code.includes("price") || code.includes("proposal")) return "That price is no longer available. Request a new price before buying.";
+    if (error.code === "quote_expired" || error.code === "price_limit_exceeded") return "That price has moved on. Get a fresh price and try again.";
+    if (error.code === "order_status_pending") return "Your trade is still being confirmed. Don't submit it again — check your portfolio in a moment.";
+    if (error.code === "account_order_under_review") return "A recent trade on this account is still being confirmed. Wait for it to finish before placing another.";
+    if (error.code === "order_rejected") return "Deriv didn't accept this trade. Get a fresh price and try again.";
+    if (error.code === "real_money_confirmation_required") return "Tick the confirmation box first — this trade uses real money you could lose.";
+    if (code.includes("insufficient") || code.includes("balance")) return "There isn't enough balance in this account for that trade.";
+    if (code.includes("market") && code.includes("closed")) return "This market is closed right now. Pick another market or come back later.";
+    if (code.includes("price") || code.includes("proposal")) return "That price has moved on. Get a fresh price and try again.";
     if (error.status === 403) return "You don’t have access to this action.";
     if (error.status === 404) return "We couldn’t find what you requested.";
     if (error.status === 409) return "This action conflicts with the latest account information. Refresh and try again.";

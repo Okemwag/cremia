@@ -122,24 +122,24 @@ function IntroSection() {
 
         <div className="grid gap-12 pb-20 pt-28 lg:grid-cols-[0.65fr_1.35fr] lg:gap-20 lg:pb-32 lg:pt-40">
           <Reveal>
-            <Kicker>One trading workspace</Kicker>
+            <Kicker>One place to trade</Kicker>
             <p className="max-w-[360px] text-base font-medium leading-relaxed text-black/40 md:text-lg">
-              Built for traders who want clear market discovery, deliberate execution,
-              and an honest view of every open contract.
+              Built for traders who want to find opportunities fast, trade with
+              confidence, and always know exactly where their money stands.
             </p>
           </Reveal>
           <Reveal delay={0.08}>
             <p className="text-[38px] font-medium leading-[1.05] tracking-[-0.04em] text-black/25 sm:text-[52px] md:text-[64px] lg:text-[72px]">
-              Markets move quickly. <span className="text-[#0a0a0d]">Your trading workflow should stay clear.</span>
+              Markets move fast. <span className="text-[#0a0a0d]">You should never feel lost in them.</span>
             </p>
           </Reveal>
         </div>
 
         <div className="grid border-y border-black/10 sm:grid-cols-3">
           {[
-            ["OAuth", "Secure account connection"],
-            ["Live", "Deriv market pricing"],
-            ["AES-256", "Token encryption at rest"],
+            ["1 click", "To connect your Deriv account"],
+            ["Live", "Prices, straight from the market"],
+            ["Bank-grade", "Security protecting your account"],
           ].map(([value, label], index) => (
             <Reveal
               key={label}
@@ -213,13 +213,14 @@ function AssetsSection() {
       <div className="pointer-events-none absolute -right-40 top-20 h-[500px] w-[500px] rounded-full bg-[#80c96b]/10 blur-[120px]" />
       <div className="mx-auto grid max-w-[1440px] gap-16 lg:grid-cols-[0.78fr_1.22fr] lg:items-center lg:gap-20">
         <Reveal>
-          <Kicker light>Complete visibility</Kicker>
+          <Kicker light>Everything in view</Kicker>
           <SectionTitle light>
-            Every position. <span className="text-white/25">One deliberate view.</span>
+            Every trade. <span className="text-white/25">One clear picture.</span>
           </SectionTitle>
           <p className="mt-7 max-w-[470px] text-base font-medium leading-relaxed text-white/45 md:text-lg">
-            Connect a Deriv account to see balances, open contracts, statements, and
-            realised results without leaving the Synex workspace.
+            Your balance, open trades, history, and profits — together on one
+            screen, updating live. No more jumping between tabs to know where
+            you stand.
           </p>
           <a href="#analytics" className="group mt-9 inline-flex items-center gap-3 text-sm font-semibold text-white">
             Explore the platform
@@ -241,20 +242,20 @@ const capabilityCards = [
   {
     icon: WalletCards,
     number: "01",
-    title: "Everything connected",
-    copy: "Link Deriv through OAuth without sharing your trading password with Synex.",
+    title: "Connected in seconds",
+    copy: "Link your Deriv account with one click — you never share your password with Synex.",
   },
   {
     icon: Layers3,
     number: "02",
-    title: "One source of truth",
-    copy: "See balances, open exposure, transaction history, and realised results in one precise view.",
+    title: "Know where you stand",
+    copy: "Your balance, open trades, history, and results — all in one clear view, always up to date.",
   },
   {
     icon: Radar,
     number: "03",
-    title: "Always in motion",
-    copy: "Live market data and fresh proposals keep each execution decision grounded in current terms.",
+    title: "Always live",
+    copy: "Prices update in real time, so every trade you place reflects what the market is doing right now.",
   },
 ];
 
@@ -270,8 +271,8 @@ function CapabilitiesSection() {
             </SectionTitle>
           </div>
           <p className="max-w-[420px] text-base font-medium leading-relaxed text-black/40 md:text-lg">
-            A calmer way to explore markets, price contracts, monitor exposure, and
-            decide what deserves your attention next.
+            A calmer way to explore markets, check prices, watch your trades,
+            and decide your next move — without the noise.
           </p>
         </Reveal>
 
@@ -319,15 +320,15 @@ function AnalyticsSection() {
       <div className="mx-auto max-w-[1440px]">
         <div className="grid gap-12 lg:grid-cols-[1fr_0.82fr] lg:items-end">
           <Reveal>
-            <Kicker>Decision intelligence</Kicker>
+            <Kicker>Know your numbers</Kicker>
             <SectionTitle>
               Understand the <span className="text-black/20">story behind every number.</span>
             </SectionTitle>
           </Reveal>
           <Reveal delay={0.08}>
             <p className="max-w-[500px] text-base font-medium leading-relaxed text-black/40 md:text-lg">
-              Go beyond a trade ticket. Synex brings positions, account history, and
-              realised results together without overwhelming the execution flow.
+              See what you're making, what you're risking, and how your trading
+              is trending over time — explained clearly, not buried in charts.
             </p>
           </Reveal>
         </div>
@@ -405,8 +406,8 @@ function MarketsSection() {
             </SectionTitle>
           </div>
           <p className="mx-auto mt-7 max-w-[580px] text-base font-medium leading-relaxed text-white/40 md:text-lg">
-            Explore the instruments Deriv makes available to your account, review
-            recent price movement, and request current contract terms.
+            Forex, stock indices, commodities, crypto and more — watch prices
+            move in real time and jump in when the moment feels right.
           </p>
         </Reveal>
 
@@ -432,9 +433,9 @@ function MarketsSection() {
 
             <div className="absolute inset-x-0 bottom-0 grid gap-3 sm:grid-cols-3">
               {[
-                ["Market source", "Deriv API"],
-                ["Price requests", "Live"],
-                ["Availability", "Account based"],
+                ["Powered by", "Deriv"],
+                ["Prices", "Live, always"],
+                ["Markets", "Forex to crypto"],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-center justify-between border-t border-white/15 py-4 sm:block sm:text-center">
                   <p className="text-xs text-white/30">{label}</p>
@@ -450,10 +451,10 @@ function MarketsSection() {
 }
 
 const securityItems = [
-  { icon: LockKeyhole, title: "Encrypted OAuth tokens", copy: "Connected Deriv tokens are protected with AES-256-GCM encryption before database storage." },
-  { icon: Fingerprint, title: "Secure account access", copy: "Your Synex sign-in stays separate from your connected trading accounts." },
-  { icon: ShieldCheck, title: "Explicit execution", copy: "A contract is bought only after you review a live proposal and confirm the maximum price." },
-  { icon: BadgeCheck, title: "Auditable actions", copy: "Proposal, buy, and sell attempts are recorded for operational traceability." },
+  { icon: LockKeyhole, title: "Bank-grade encryption", copy: "Your connection to Deriv is protected with the same level of encryption banks rely on." },
+  { icon: Fingerprint, title: "Your password stays yours", copy: "You sign in with Deriv directly — Synex never sees or stores your trading password." },
+  { icon: ShieldCheck, title: "You approve every trade", copy: "Nothing is ever bought until you've seen the live price and confirmed it yourself." },
+  { icon: BadgeCheck, title: "A record of everything", copy: "Every quote, buy, and sell is logged, so you can always see exactly what happened and when." },
 ];
 
 function SecuritySection() {
@@ -467,8 +468,9 @@ function SecuritySection() {
               Your account stays <span className="text-black/20">yours.</span>
             </SectionTitle>
             <p className="mt-7 max-w-[460px] text-base font-medium leading-relaxed text-black/40 md:text-lg">
-              Synex connects through Deriv OAuth and keeps platform identity, account
-              tokens, execution, and future payment operations clearly separated.
+              Your money and trades always stay with Deriv, in your control.
+              Synex is the window you view and manage them through — nothing
+              moves without your say-so.
             </p>
             <a href="#get-started" className="group mt-9 inline-flex items-center gap-3 text-sm font-semibold text-black">
               Our security standard
@@ -504,11 +506,11 @@ function TestimonialSection() {
       <Reveal className="mx-auto max-w-[1100px] text-center">
         <CircleDollarSign size={30} strokeWidth={1.2} className="mx-auto mb-10 text-black/25" />
         <blockquote className="text-[34px] font-medium leading-[1.08] tracking-[-0.04em] text-black/25 sm:text-[48px] md:text-[62px]">
-          “Price discovery, execution, and position monitoring should feel like one coherent flow. <span className="text-[#0a0a0d]">That is what Synex is built to deliver.</span>”
+          “Finding a trade, placing it, and watching it play out should feel like one smooth motion. <span className="text-[#0a0a0d]">That is what Synex is built to deliver.</span>”
         </blockquote>
         <div className="mt-10">
           <p className="text-sm font-semibold text-black/75">The Synex principle</p>
-          <p className="mt-1 text-xs font-medium text-black/30">Clarity before execution</p>
+          <p className="mt-1 text-xs font-medium text-black/30">Clarity before every trade</p>
         </div>
       </Reveal>
     </section>
@@ -537,8 +539,8 @@ function FinalCta() {
           See everything.<br /><span className="text-white/25">Move with clarity.</span>
         </h2>
         <p className="mx-auto mt-7 max-w-[510px] text-base font-medium leading-relaxed text-white/40 md:text-lg">
-          Connect a Deriv virtual or real account and move through a calmer, more
-          deliberate trading workflow.
+          Start with a free practice account and trade for real when you're
+          ready. No pressure, no clutter — just you and the markets.
         </p>
         <Link to="/login" className="group mx-auto mt-10 inline-flex items-center gap-4 rounded-full bg-white py-3 pl-3 pr-6 text-sm font-semibold text-black transition-transform hover:scale-[1.02]">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-black text-white">
@@ -565,7 +567,7 @@ function Footer() {
           <div>
             <img src={`${ASSET_ROOT}/logo.svg`} alt="Synex" className="h-8 w-auto invert" />
             <p className="mt-5 max-w-[330px] text-sm font-medium leading-relaxed text-white/35">
-              A focused trading experience powered by Deriv market data and execution.
+              Trading, made clear. Live markets and trusted execution, powered by Deriv.
             </p>
           </div>
           {[

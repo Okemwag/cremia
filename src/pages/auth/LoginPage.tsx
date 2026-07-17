@@ -73,7 +73,7 @@ export default function LoginPage() {
           Welcome back
         </h1>
         <p className="mt-3 text-[15px] font-medium text-black/45">
-          Sign in to access your account.
+          Sign in and pick up right where you left off.
         </p>
 
         {!authConfig.configured && (

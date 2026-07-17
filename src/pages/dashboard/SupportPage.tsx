@@ -74,9 +74,9 @@ export default function SupportPage() {
   return (
     <>
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-[.17em] text-black/30">Client care</p>
+        <p className="text-[11px] font-bold uppercase tracking-[.17em] text-black/30">We're here to help</p>
         <h1 className="mt-2 text-[36px] font-medium leading-none tracking-[-.05em] sm:text-[44px]">Support centre</h1>
-        <p className="mt-3 max-w-[650px] text-sm font-medium leading-relaxed text-black/40 sm:text-base">Open a secure support request and keep the full conversation attached to your Synex account.</p>
+        <p className="mt-3 max-w-[650px] text-sm font-medium leading-relaxed text-black/40 sm:text-base">Ask us anything. Your whole conversation stays saved to your account, so you never have to repeat yourself.</p>
       </div>
 
       {error && <div className="mt-6 rounded-xl border border-red-900/10 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{error}</div>}
@@ -96,8 +96,8 @@ export default function SupportPage() {
       ) : (
         <div className="mt-8 grid gap-4 xl:grid-cols-[1fr_430px]">
           <section className="overflow-hidden rounded-[22px] border border-black/[.07] bg-[#f7f7f4]">
-            <div className="flex items-center justify-between border-b border-black/[.07] p-6"><div><h2 className="text-lg font-semibold tracking-[-.03em]">Your requests</h2><p className="mt-1 text-xs text-black/35">Updates stay available in this secure workspace.</p></div><MessageCircle size={18} className="text-black/30"/></div>
-            {tickets.length ? <div className="divide-y divide-black/[.06]">{tickets.map((item) => <Link key={item.id} to={`/app/support?ticket=${item.id}`} className="flex items-center gap-4 px-6 py-5 transition-colors hover:bg-black/[.025]"><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{item.subject}</p><p className="mt-1 text-xs capitalize text-black/35">{item.category} · updated {new Date(item.updated_at).toLocaleString()}</p></div><span className="rounded-full bg-black/[.05] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.1em] text-black/40">{item.status}</span></Link>)}</div> : <div className="grid min-h-[350px] place-items-center p-8 text-center"><div><MessageCircle className="mx-auto text-black/20"/><h3 className="mt-4 text-xl font-medium">No support requests</h3><p className="mt-2 text-sm text-black/40">Use the form to contact the Synex service team.</p></div></div>}
+            <div className="flex items-center justify-between border-b border-black/[.07] p-6"><div><h2 className="text-lg font-semibold tracking-[-.03em]">Your requests</h2><p className="mt-1 text-xs text-black/35">We'll reply right here — check back anytime.</p></div><MessageCircle size={18} className="text-black/30"/></div>
+            {tickets.length ? <div className="divide-y divide-black/[.06]">{tickets.map((item) => <Link key={item.id} to={`/app/support?ticket=${item.id}`} className="flex items-center gap-4 px-6 py-5 transition-colors hover:bg-black/[.025]"><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{item.subject}</p><p className="mt-1 text-xs capitalize text-black/35">{item.category} · updated {new Date(item.updated_at).toLocaleString()}</p></div><span className="rounded-full bg-black/[.05] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.1em] text-black/40">{item.status}</span></Link>)}</div> : <div className="grid min-h-[350px] place-items-center p-8 text-center"><div><MessageCircle className="mx-auto text-black/20"/><h3 className="mt-4 text-xl font-medium">No requests yet</h3><p className="mt-2 text-sm text-black/40">Need a hand with anything? Send us a message using the form.</p></div></div>}
           </section>
 
           <section className="rounded-[22px] border border-black/[.07] bg-[#f7f7f4] p-6">
@@ -106,7 +106,7 @@ export default function SupportPage() {
               <input required maxLength={160} value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="What do you need help with?" className="w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm outline-none"/>
               <select value={category} onChange={(event) => setCategory(event.target.value as SupportTicket["category"])} className="w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold capitalize outline-none">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select>
               <textarea required minLength={10} maxLength={5000} value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Describe the issue, including any relevant order or contract details." className="min-h-[170px] w-full resize-y rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm leading-relaxed outline-none"/>
-              <button disabled={busy || subject.trim().length === 0 || message.trim().length < 10} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#111310] px-5 py-3.5 text-sm font-semibold text-white disabled:opacity-35"><Send size={15}/> Submit securely</button>
+              <button disabled={busy || subject.trim().length === 0 || message.trim().length < 10} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#111310] px-5 py-3.5 text-sm font-semibold text-white disabled:opacity-35"><Send size={15}/> Send message</button>
             </form>
           </section>
         </div>

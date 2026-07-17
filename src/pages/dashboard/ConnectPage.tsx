@@ -40,11 +40,11 @@ export default function ConnectPage() {
   const securityItems = [
     { icon: KeyRound, title: "Your password stays private", copy: "You sign in directly with Deriv. Synex never sees your Deriv password." },
     { icon: ShieldCheck, title: "You stay in control", copy: "You review access before connecting and can disconnect whenever you choose." },
-    { icon: ExternalLink, title: "Trades remain with Deriv", copy: "Your account, funds and completed trades continue to be held by Deriv." },
+    { icon: ExternalLink, title: "Your money stays with Deriv", copy: "Your account, funds and trades are always held safely by Deriv — Synex just gives you a better view of them." },
   ];
 
   const resultMessage: Record<string, string> = {
-    linked: "Your Deriv accounts are ready to use.",
+    linked: "You're connected! Your Deriv accounts are ready to trade.",
     cancelled: "Nothing was changed. You can connect whenever you are ready.",
     expired: "That connection request expired. Please try again.",
     "no-accounts": "We could not find an options trading account to connect.",
@@ -54,7 +54,7 @@ export default function ConnectPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Your accounts" title="Trading accounts" description="Connect your Deriv account, then choose between your practice and real accounts from Synex." action={<button type="button" onClick={() => void connect()} disabled={busy || connecting} className="inline-flex items-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{connecting ? <LoaderCircle size={15} className="animate-spin"/> : <Plus size={15}/>} {connecting ? "Opening Deriv…" : "Connect Deriv"}</button>} />
+      <PageHeader eyebrow="Your accounts" title="Trading accounts" description="Link your Deriv account once, then switch between practice and real accounts anytime." action={<button type="button" onClick={() => void connect()} disabled={busy || connecting} className="inline-flex items-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{connecting ? <LoaderCircle size={15} className="animate-spin"/> : <Plus size={15}/>} {connecting ? "Opening Deriv…" : "Connect Deriv"}</button>} />
       {error && <div className="mt-6"><Feedback>{error}</Feedback></div>}
       {result && resultMessage[result] && <div className="mt-6"><Feedback tone={linked ? "success" : "info"}>{resultMessage[result]}</Feedback></div>}
       <div className="mt-8 grid gap-4">

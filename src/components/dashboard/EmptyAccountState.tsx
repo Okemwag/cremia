@@ -22,7 +22,7 @@ export default function EmptyAccountState() {
         </span>
         <h2 className="mt-5 text-2xl font-medium tracking-[-0.04em]">Connect your Deriv account</h2>
         <p className="mt-3 text-sm font-medium leading-relaxed text-black/40">
-          Synex uses Deriv for market access and execution. Start with a virtual account while you learn the workflow.
+          Your money and trades stay safely with Deriv — Synex is where you see and control it all. Start with a free practice account and get a feel for things.
         </p>
         <button
           type="button"

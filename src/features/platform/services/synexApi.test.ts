@@ -20,23 +20,23 @@ describe("apiErrorMessage", () => {
 
   it("explains an insufficient balance without provider jargon", () => {
     expect(apiErrorMessage(new APIError(422, "InsufficientBalance", "provider detail"))).toBe(
-      "Your account does not have enough available balance for this order.",
+      "There isn't enough balance in this account for that trade.",
     );
   });
 
   it("explains a closed market", () => {
-    expect(apiErrorMessage(new APIError(422, "MarketIsClosed", "provider detail"))).toContain("market is currently closed");
+    expect(apiErrorMessage(new APIError(422, "MarketIsClosed", "provider detail"))).toContain("market is closed");
   });
 
   it("blocks new orders while an earlier instruction is under review", () => {
     expect(apiErrorMessage(new APIError(409, "account_order_under_review", "internal"))).toContain(
-      "Wait for it to be resolved",
+      "Wait for it to finish",
     );
   });
 
   it("explains the required real-money acknowledgement", () => {
     expect(apiErrorMessage(new APIError(422, "real_money_confirmation_required", "internal"))).toContain(
-      "real-money risk",
+      "real money you could lose",
     );
   });
 });

@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import { formatMoney, type OrderReceipt } from "../../features/platform/services/synexApi";
 
 const statusView = {
-  succeeded: { label: "Order completed", icon: CheckCircle2, className: "bg-[#e0eadb] text-[#46683c]" },
-  pending: { label: "Confirmation pending", icon: Clock3, className: "bg-amber-100 text-amber-900" },
-  review: { label: "Under review", icon: AlertTriangle, className: "bg-amber-100 text-amber-900" },
-  failed: { label: "Order not completed", icon: AlertTriangle, className: "bg-red-50 text-red-700" },
+  succeeded: { label: "Trade placed", icon: CheckCircle2, className: "bg-[#e0eadb] text-[#46683c]" },
+  pending: { label: "Confirming with Deriv", icon: Clock3, className: "bg-amber-100 text-amber-900" },
+  review: { label: "Being double-checked", icon: AlertTriangle, className: "bg-amber-100 text-amber-900" },
+  failed: { label: "Didn't go through", icon: AlertTriangle, className: "bg-red-50 text-red-700" },
 } as const;
 
 export default function TradeReceipt({ receipt, feeDisclosure }: { receipt: OrderReceipt; feeDisclosure: string }) {
@@ -16,7 +16,7 @@ export default function TradeReceipt({ receipt, feeDisclosure }: { receipt: Orde
   return (
     <section aria-labelledby="trade-receipt-title">
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2"><ReceiptText size={18} className="text-black/35" /><p className="text-xs font-bold uppercase tracking-[.14em] text-black/30">Order receipt</p></div>
+        <div className="flex items-center gap-2"><ReceiptText size={18} className="text-black/35" /><p className="text-xs font-bold uppercase tracking-[.14em] text-black/30">Trade receipt</p></div>
         <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${view.className}`}><StatusIcon size={13} /> {view.label}</span>
       </div>
 
@@ -25,10 +25,10 @@ export default function TradeReceipt({ receipt, feeDisclosure }: { receipt: Orde
 
       <dl className="mt-6 divide-y divide-black/[.07] border-y border-black/[.07] text-sm">
         <ReceiptRow label="Account" value={`${receipt.login_id} · ${receipt.is_virtual ? "Practice" : "Real money"}`} />
-        {!receipt.is_virtual && <ReceiptRow label="Risk confirmation" value={receipt.real_money_confirmed ? "Acknowledged" : "Not recorded"} />}
-        <ReceiptRow label="Amount at risk" value={formatMoney(receipt.maximum_loss, receipt.currency)} />
-        <ReceiptRow label="Potential payout" value={formatMoney(receipt.potential_payout, receipt.currency)} />
-        <ReceiptRow label="Synex fee or markup" value={formatMoney(receipt.synex_fee, receipt.currency)} />
+        {!receipt.is_virtual && <ReceiptRow label="Risk confirmation" value={receipt.real_money_confirmed ? "Confirmed by you" : "Not recorded"} />}
+        <ReceiptRow label="The most you can lose" value={formatMoney(receipt.maximum_loss, receipt.currency)} />
+        <ReceiptRow label="You could get back" value={formatMoney(receipt.potential_payout, receipt.currency)} />
+        <ReceiptRow label="Synex fee" value={formatMoney(receipt.synex_fee, receipt.currency)} />
         {receipt.contract_id ? <ReceiptRow label="Deriv contract" value={String(receipt.contract_id)} /> : null}
         {receipt.provider_transaction_id ? <ReceiptRow label="Deriv transaction" value={String(receipt.provider_transaction_id)} /> : null}
         <ReceiptRow label="Submitted" value={new Date(receipt.created_at).toLocaleString()} />
@@ -39,7 +39,7 @@ export default function TradeReceipt({ receipt, feeDisclosure }: { receipt: Orde
 
       {receipt.contract_id && receipt.status === "succeeded" && (
         <Link to={`/app/portfolio/${receipt.contract_id}`} className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white">
-          View position <ExternalLink size={14} />
+          Follow this trade <ExternalLink size={14} />
         </Link>
       )}
     </section>

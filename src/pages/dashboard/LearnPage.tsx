@@ -2,18 +2,18 @@ import { AlertTriangle, ArrowRight, BookOpen, GraduationCap, ShieldCheck } from 
 import { useState } from "react";
 
 const lessons = [
-  { tag: "Foundation", title: "How Deriv contracts work", text: "Understand stake, payout, duration, barriers and the difference between a proposal and a purchased contract." },
+  { tag: "Foundation", title: "How trades work", text: "What you stake, what you can win, how long a trade runs — and what happens between seeing a quote and owning a trade." },
   { tag: "Risk", title: "Position sizing before prediction", text: "Set a maximum loss per idea, protect essential funds and decide the exit before entering a market." },
-  { tag: "Execution", title: "Quotes, slippage and contract status", text: "Learn why live prices move, when a quote can expire and how to monitor or close an eligible position." },
+  { tag: "Execution", title: "Quotes, timing and closing trades", text: "Why live prices move, why a quote can expire, and how to watch or close a trade once it's running." },
   { tag: "Markets", title: "Forex, commodities and derived indices", text: "Compare trading hours, volatility and market-specific risks before choosing an instrument." },
 ];
 
 const faqs = [
-  ["Does Synex hold my trading funds?", "No. Trading balances and contract execution remain with your linked Deriv account. Synex is the workspace that connects to Deriv APIs."],
-  ["Can I lose more than my stake?", "Contract terms differ. Always review the proposal, maximum loss, payout and cancellation or resale rules shown before purchase."],
+  ["Does Synex hold my trading funds?", "No. Your money and trades always stay with your Deriv account. Synex is the platform you view and control them from."],
+  ["Can I lose more than my stake?", "It depends on the trade type. Before you buy, always check the quote — it shows the most you can lose, what you could get back, and the cancellation rules."],
   ["Is a demo account realistic?", "It uses virtual funds and is useful for learning execution. It cannot reproduce the emotional or financial consequences of live trading."],
   ["Are returns guaranteed?", "No. Trading involves substantial risk and past outcomes do not predict future results. Synex does not guarantee profit."],
-  ["How are deposits and withdrawals handled?", "The funding area is intentionally disabled until the separate payment gateway is connected and verified end to end."],
+  ["How are deposits and withdrawals handled?", "For now, deposits and withdrawals happen directly on Deriv. In-app funding is coming to Synex soon."],
 ];
 
 export default function LearnPage() {
@@ -23,7 +23,7 @@ export default function LearnPage() {
 
     <section className="mt-8 grid overflow-hidden rounded-[24px] bg-[#111310] text-white lg:grid-cols-[1.15fr_.85fr]">
       <div className="p-7 sm:p-10"><span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[.14em]"><GraduationCap size={14}/> Start here</span><h2 className="mt-10 max-w-[580px] text-[36px] font-medium leading-[1.02] tracking-[-.05em] sm:text-[52px]">Protect capital before pursuing opportunity.</h2><p className="mt-5 max-w-[560px] text-sm font-medium leading-relaxed text-white/50 sm:text-base">Use a demo account, understand the exact contract, and never trade money required for living expenses, debt or emergencies.</p></div>
-      <div className="grid content-center gap-4 bg-[#20231f] p-7 sm:p-10"><div className="rounded-2xl bg-white/[.06] p-5"><ShieldCheck className="text-[#a6cc95]"/><p className="mt-4 text-sm font-semibold">Before every order</p><p className="mt-2 text-sm leading-relaxed text-white/45">Check the account type, stake, possible loss, payout, duration and exit conditions.</p></div><div className="rounded-2xl border border-amber-300/15 bg-amber-300/[.06] p-5"><AlertTriangle className="text-amber-300"/><p className="mt-4 text-sm font-semibold">High-risk products</p><p className="mt-2 text-sm leading-relaxed text-white/45">Short-duration derivatives can move quickly and may result in the loss of the full stake.</p></div></div>
+      <div className="grid content-center gap-4 bg-[#20231f] p-7 sm:p-10"><div className="rounded-2xl bg-white/[.06] p-5"><ShieldCheck className="text-[#a6cc95]"/><p className="mt-4 text-sm font-semibold">Before every order</p><p className="mt-2 text-sm leading-relaxed text-white/45">Check which account you're on, your stake, the most you can lose, what you could win, and how you'll exit.</p></div><div className="rounded-2xl border border-amber-300/15 bg-amber-300/[.06] p-5"><AlertTriangle className="text-amber-300"/><p className="mt-4 text-sm font-semibold">High-risk products</p><p className="mt-2 text-sm leading-relaxed text-white/45">Short-duration derivatives can move quickly and may result in the loss of the full stake.</p></div></div>
     </section>
 
     <div className="mt-10 flex items-end justify-between"><div><p className="text-[11px] font-bold uppercase tracking-[.17em] text-black/30">Learning path</p><h2 className="mt-2 text-2xl font-semibold tracking-[-.04em]">Core modules</h2></div><BookOpen size={20} className="text-black/25"/></div>
