@@ -1,6 +1,7 @@
 import { BadgeCheck, ChevronRight, Circle, FileCheck2, Link2, LoaderCircle, ShieldAlert, UserRoundCheck } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useDerivConnection } from "../../features/platform/hooks/useDerivConnection";
 import {
   apiErrorMessage,
   type OnboardingStatus,
@@ -36,6 +37,7 @@ const inputClass = "mt-2 w-full rounded-xl border border-black/[.08] bg-white/65
 
 export default function OnboardingPage() {
   const api = useSynexAPI();
+  const { connectDeriv, connecting } = useDerivConnection();
   const [profile, setProfile] = useState<UserProfile>(emptyProfile);
   const [assessment, setAssessment] = useState<SuitabilityAssessment>(emptyAssessment);
   const [status, setStatus] = useState<OnboardingStatus>();
@@ -88,6 +90,12 @@ export default function OnboardingPage() {
     finally { setBusy(false); }
   };
 
+  const connect = async () => {
+    setError(""); setSuccess("");
+    try { await connectDeriv(); }
+    catch (reason) { setError(apiErrorMessage(reason)); }
+  };
+
   if (loading) return <div className="grid min-h-[560px] place-items-center"><LoaderCircle className="animate-spin text-black/30"/></div>;
 
   const steps = [
@@ -109,7 +117,7 @@ export default function OnboardingPage() {
 
       <section className="mt-4 rounded-[22px] border border-black/[.07] bg-[#111310] p-6 text-white sm:p-8"><div className="flex items-start justify-between gap-5"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-white/35">Step 3</p><h2 className="mt-2 text-2xl font-medium tracking-[-.04em]">Risk disclosure</h2></div>{status?.risk_acknowledged && <BadgeCheck className="text-[#9de783]"/>}</div><div className="mt-7 rounded-2xl border border-white/10 bg-white/[.04] p-5 text-sm font-medium leading-relaxed text-white/55"><p>Trading options, leveraged products, and short-duration contracts involves significant risk. Prices can move quickly and you may lose the full amount committed to a contract. Past or virtual-account results do not predict live performance. Synex does not provide investment, legal, or tax advice.</p><p className="mt-4">Only trade with money you can afford to lose. Review each Deriv proposal and contract terms before confirming execution.</p></div><label className="mt-5 flex items-start gap-3 text-sm font-medium text-white/65"><input type="checkbox" checked={riskChecked || Boolean(status?.risk_acknowledged)} disabled={status?.risk_acknowledged} onChange={(e) => setRiskChecked(e.target.checked)} className="mt-1"/> I have read and understood this risk disclosure and accept version {status?.disclosure_version}.</label><button type="button" onClick={() => void acknowledge()} disabled={busy || !riskChecked || status?.risk_acknowledged} className="mt-6 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-black disabled:opacity-30">{status?.risk_acknowledged ? "Acknowledged" : "Record acknowledgement"}</button></section>
 
-      <section className="mt-4 flex flex-col gap-5 rounded-[22px] border border-black/[.07] bg-[#f7f7f4] p-6 sm:flex-row sm:items-center sm:p-8"><span className={`grid h-12 w-12 place-items-center rounded-full ${status?.deriv_connected ? "bg-green-100 text-green-700" : "bg-black/[.05] text-black/30"}`}>{status?.deriv_connected ? <BadgeCheck size={20}/> : <Link2 size={20}/>}</span><div className="flex-1"><p className="text-xs font-bold uppercase tracking-[.14em] text-black/30">Step 4</p><h2 className="mt-1 text-xl font-semibold">Connect a Deriv account</h2><p className="mt-2 text-sm font-medium text-black/40">Deriv owns account verification, available instruments, balances, contract settlement, and jurisdiction-specific restrictions.</p></div><Link to="/app/connect" className="inline-flex items-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white">Manage accounts <ChevronRight size={15}/></Link></section>
+      <section className="mt-4 flex flex-col gap-5 rounded-[22px] border border-black/[.07] bg-[#f7f7f4] p-6 sm:flex-row sm:items-center sm:p-8"><span className={`grid h-12 w-12 place-items-center rounded-full ${status?.deriv_connected ? "bg-green-100 text-green-700" : "bg-black/[.05] text-black/30"}`}>{status?.deriv_connected ? <BadgeCheck size={20}/> : <Link2 size={20}/>}</span><div className="flex-1"><p className="text-xs font-bold uppercase tracking-[.14em] text-black/30">Step 4</p><h2 className="mt-1 text-xl font-semibold">Connect a Deriv account</h2><p className="mt-2 text-sm font-medium text-black/40">Deriv owns account verification, available instruments, balances, contract settlement, and jurisdiction-specific restrictions.</p></div>{status?.deriv_connected ? <Link to="/app/connect" className="inline-flex items-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white">Manage accounts <ChevronRight size={15}/></Link> : <button type="button" onClick={() => void connect()} disabled={connecting} className="inline-flex items-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{connecting ? <LoaderCircle size={15} className="animate-spin"/> : <Link2 size={15}/>} {connecting ? "Opening Deriv…" : "Connect Deriv"}</button>}</section>
       {!status?.ready_for_live && <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-900/10 bg-amber-50 px-4 py-3 text-sm font-medium leading-relaxed text-amber-900/70"><Circle size={14} className="mt-0.5 shrink-0"/> Live-account buying remains blocked until all required steps are complete. Virtual-account trading remains available after connection.</div>}
     </>
   );

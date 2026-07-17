@@ -11,12 +11,19 @@ export const authConfig = {
   clientId: clientId || "synex-local-client",
   audience: audience || undefined,
   callbackUrl: callbackUrl || defaultCallbackUrl,
-  configured: Boolean(domain && clientId),
+  configured: Boolean(domain && clientId && audience),
   apiConfigured: Boolean(audience),
-  devAuthBypass: import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === "true",
 };
 
-export const missingAuthConfig = [
-  !domain && "VITE_AUTH0_DOMAIN",
-  !clientId && "VITE_AUTH0_CLIENT_ID",
-].filter(Boolean) as string[];
+export function safeReturnTo(value?: string | null) {
+  if (!value) return "/app";
+  try {
+    const base = new URL("https://synex.local");
+    const target = new URL(value, base);
+    const isWorkspace = target.pathname === "/app" || target.pathname.startsWith("/app/");
+    if (target.origin !== base.origin || !isWorkspace) return "/app";
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return "/app";
+  }
+}

@@ -1,12 +1,15 @@
-import { CircleDollarSign, LoaderCircle, Sparkles, Zap } from "lucide-react";
-import { type FormEvent, useEffect, useState } from "react";
+import { CircleDollarSign, LoaderCircle, Sparkles } from "lucide-react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import EmptyAccountState from "../../components/dashboard/EmptyAccountState";
 import Feedback from "../../components/dashboard/Feedback";
 import PageHeader from "../../components/dashboard/PageHeader";
 import Surface from "../../components/dashboard/Surface";
+import TradeQuote from "../../components/dashboard/TradeQuote";
+import TradeReceipt from "../../components/dashboard/TradeReceipt";
 import { useWorkspace } from "../../features/platform/context/WorkspaceContext";
-import { apiErrorMessage, formatMoney, type ActiveSymbol, type ContractOption, type Proposal, useSynexAPI } from "../../features/platform/services/synexApi";
+import { formatMarketQuote, marketStreamLabel, useMarketStream } from "../../features/platform/services/marketStream";
+import { apiErrorMessage, type ActiveSymbol, type ContractOption, type OrderReceipt, type Proposal, useSynexAPI } from "../../features/platform/services/synexApi";
 
 export default function TradePage() {
   const api = useSynexAPI();
@@ -20,9 +23,24 @@ export default function TradePage() {
   const [duration, setDuration] = useState("5");
   const [durationUnit, setDurationUnit] = useState("m");
   const [proposal, setProposal] = useState<Proposal>();
+  const [instructionKey, setInstructionKey] = useState("");
+  const [secondsRemaining, setSecondsRemaining] = useState(0);
+  const [realMoneyConfirmed, setRealMoneyConfirmed] = useState(false);
+  const [receipt, setReceipt] = useState<OrderReceipt>();
+  const [feeDisclosure, setFeeDisclosure] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [pendingInstruction, setPendingInstruction] = useState("");
+  const market = useMarketStream(symbol);
+  const selectedMarket = symbols.find((item) => item.symbol === symbol);
+
+  const loadReceipt = useCallback(async (key: string) => {
+    const result = await api.orderReceipt(key);
+    setReceipt(result.data);
+    setFeeDisclosure(result.fee_disclosure);
+    return result.data;
+  }, [api]);
 
   useEffect(() => {
     void api.symbols().then((items) => {
@@ -34,6 +52,7 @@ export default function TradePage() {
   useEffect(() => {
     if (!symbol) return;
     setProposal(undefined);
+    setRealMoneyConfirmed(false);
     void api.contracts(symbol).then((items) => {
       const unique = Array.from(new Map(items.map((item) => [item.contract_type, item])).values());
       setContracts(unique);
@@ -41,27 +60,99 @@ export default function TradePage() {
     }).catch((reason) => setError(apiErrorMessage(reason)));
   }, [api, symbol]);
 
+  useEffect(() => {
+    if (!proposal?.synex_expires_at) {
+      setSecondsRemaining(0);
+      return;
+    }
+    const update = () => setSecondsRemaining(Math.max(0, Math.ceil((new Date(proposal.synex_expires_at).getTime() - Date.now()) / 1000)));
+    update();
+    const timer = window.setInterval(update, 250);
+    return () => window.clearInterval(timer);
+  }, [proposal]);
+
+  useEffect(() => {
+    if (!pendingInstruction) return;
+    let stopped = false;
+    const check = async () => {
+      try {
+        const order = await api.orderStatus(pendingInstruction);
+        if (stopped || order.status === "pending") return;
+        const finalReceipt = await loadReceipt(pendingInstruction);
+        if (stopped) return;
+        setPendingInstruction("");
+        setProposal(undefined);
+        if (order.status === "succeeded") {
+          setSuccess(`Order completed${finalReceipt.contract_id ? ` · Contract ${finalReceipt.contract_id}` : ""}.`);
+        } else if (order.status === "review") {
+          setError("We’re checking this order with Deriv. Please do not place another order on this account until the review is complete.");
+        } else {
+          setError("This order was not completed. Request a new price before trying again.");
+        }
+      } catch {
+        // Keep checking the same instruction. Submitting another order could duplicate it.
+      }
+    };
+    void check();
+    const timer = window.setInterval(() => void check(), 3000);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [api, loadReceipt, pendingInstruction]);
+
   if (!activeAccount) {
     return <><PageHeader eyebrow="Direct execution" title="Trade" description="Connect an account before requesting live contract prices." /><EmptyAccountState /></>;
   }
 
   const requestProposal = async (event: FormEvent) => {
     event.preventDefault();
-    setLoading(true); setError(""); setSuccess(""); setProposal(undefined);
+    setLoading(true); setError(""); setSuccess(""); setProposal(undefined); setReceipt(undefined); setFeeDisclosure(""); setRealMoneyConfirmed(false);
     try {
-      setProposal(await api.proposal({ login_id: activeLoginID, contract_type: contractType, symbol, amount: Number(amount), basis: "stake", currency: activeAccount.currency, duration: Number(duration), duration_unit: durationUnit }));
+      const nextProposal = await api.proposal({ login_id: activeLoginID, contract_type: contractType, symbol, amount: Number(amount), basis: "stake", currency: activeAccount.currency, duration: Number(duration), duration_unit: durationUnit });
+      setProposal(nextProposal);
+      setInstructionKey(createInstructionKey());
     } catch (reason) { setError(apiErrorMessage(reason)); }
     finally { setLoading(false); }
   };
 
   const execute = async () => {
-    if (!proposal || !window.confirm(`Buy this contract for up to ${formatMoney(proposal.ask_price, activeAccount.currency)}?`)) return;
+    if (!proposal || secondsRemaining <= 0) {
+      setProposal(undefined);
+      setError("That price has expired. Request a new price before buying.");
+      return;
+    }
+    if (!activeAccount.is_virtual && !realMoneyConfirmed) {
+      setError("Confirm that you understand the real-money risk before placing this order.");
+      return;
+    }
     setLoading(true); setError("");
     try {
-      const result = await api.buy({ login_id: activeLoginID, proposal_id: proposal.id, max_price: proposal.ask_price, symbol, contract_type: contractType, currency: activeAccount.currency });
-      setSuccess(`Trade placed successfully${result.contract_id ? ` · Contract ${String(result.contract_id)}` : ""}.`);
+      const result = await api.buy({ login_id: activeLoginID, proposal_id: proposal.id, max_price: proposal.ask_price, symbol, contract_type: contractType, currency: activeAccount.currency, real_money_confirmed: !activeAccount.is_virtual && realMoneyConfirmed }, instructionKey);
+      const finalReceipt = await loadReceipt(instructionKey);
+      setSuccess(`Order completed${finalReceipt.contract_id || result.contract_id ? ` · Contract ${String(finalReceipt.contract_id || result.contract_id)}` : ""}.`);
       setProposal(undefined);
-    } catch (reason) { setError(apiErrorMessage(reason)); }
+    } catch (reason) {
+      try {
+        const order = await api.orderStatus(instructionKey);
+        if (order.status === "pending") {
+          setPendingInstruction(instructionKey);
+          setError("");
+        } else {
+          const finalReceipt = await loadReceipt(instructionKey);
+          setProposal(undefined);
+          if (order.status === "succeeded") {
+            setSuccess(`Order completed${finalReceipt.contract_id ? ` · Contract ${finalReceipt.contract_id}` : ""}.`);
+          } else if (order.status === "review") {
+            setError("We’re checking this order with Deriv. Please do not place another order on this account until the review is complete.");
+          } else {
+            setError("This order was not completed. Request a new price before trying again.");
+          }
+        }
+      } catch {
+        setError(apiErrorMessage(reason));
+      }
+    }
     finally { setLoading(false); }
   };
 
@@ -71,6 +162,7 @@ export default function TradePage() {
       <div className="mt-8 grid gap-4 xl:grid-cols-[1fr_420px]">
         <Surface className="p-6 sm:p-8">
           <form onSubmit={requestProposal} className="grid gap-6">
+            <div className="flex items-center justify-between rounded-2xl bg-[#171917] p-5 text-white"><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-white/35">Indicative market price</p><p className="mt-2 text-sm font-semibold">{selectedMarket?.display_name || symbol || "Select a market"}</p></div><div className="text-right"><div className="flex items-center justify-end gap-2 text-xs font-semibold text-white/40"><span className={`h-2 w-2 rounded-full ${market.status === "connected" ? "bg-[#8ac777]" : "animate-pulse bg-amber-400"}`}/>{marketStreamLabel(market.status)}</div><p className="mt-2 text-2xl font-medium tabular-nums">{formatMarketQuote(market.tick?.quote, market.tick?.pip_size ?? selectedMarket?.pip ?? 2)}</p></div></div>
             <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Instrument<select value={symbol} onChange={(event) => setSymbol(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none focus:border-black/30">{symbols.map((item) => <option key={item.symbol} value={item.symbol}>{item.display_name} · {item.symbol}</option>)}</select></label>
             <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Contract<select value={contractType} onChange={(event) => setContractType(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none focus:border-black/30">{contracts.map((item) => <option key={item.contract_type} value={item.contract_type}>{item.contract_display || item.contract_type}</option>)}</select><span className="mt-2 block text-xs font-normal normal-case text-black/35">Only contracts currently reported for this symbol are shown.</span></label>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -78,18 +170,40 @@ export default function TradePage() {
               <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Duration<input type="number" min="1" value={duration} onChange={(event) => setDuration(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold outline-none"/></label>
               <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Unit<select value={durationUnit} onChange={(event) => setDurationUnit(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none"><option value="t">Ticks</option><option value="m">Minutes</option><option value="h">Hours</option><option value="d">Days</option></select></label>
             </div>
-            {error && <Feedback>{error}</Feedback>}{success && <Feedback tone="success">{success}</Feedback>}
-            <button disabled={loading || !contractType} className="flex items-center justify-center gap-2 rounded-full bg-[#111310] px-5 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">{loading ? <LoaderCircle size={16} className="animate-spin"/> : <Sparkles size={16}/>} Request live price</button>
+            {error && <Feedback>{error}</Feedback>}{success && <Feedback tone="success">{success}</Feedback>}{pendingInstruction && <Feedback tone="info">Your order is still being checked. Keep this page open and do not submit it again.</Feedback>}
+            <button disabled={loading || !contractType || Boolean(pendingInstruction)} className="flex items-center justify-center gap-2 rounded-full bg-[#111310] px-5 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">{loading ? <LoaderCircle size={16} className="animate-spin"/> : <Sparkles size={16}/>} Request live price</button>
           </form>
         </Surface>
         <div className="space-y-4">
           <Surface className="p-6 sm:p-8">
-            <p className="text-xs font-bold uppercase tracking-[.14em] text-black/30">Live proposal</p>
-            {proposal ? <><p className="mt-6 text-sm font-medium text-black/40">Maximum purchase price</p><p className="mt-1 text-[38px] font-medium tracking-[-.05em]">{formatMoney(proposal.ask_price, activeAccount.currency)}</p>{proposal.payout !== undefined && <div className="mt-5 flex justify-between border-y border-black/[.07] py-4 text-sm"><span className="text-black/40">Potential payout</span><span className="font-semibold">{formatMoney(proposal.payout, activeAccount.currency)}</span></div>}<p className="mt-5 text-xs font-medium leading-relaxed text-black/40">{proposal.longcode || "Review this quote before execution. Deriv proposals expire quickly and may need to be refreshed."}</p><button type="button" onClick={() => void execute()} disabled={loading} className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[#6fa45e] px-5 py-4 text-sm font-bold text-white disabled:opacity-50"><Zap size={16}/> Confirm and buy</button></> : <div className="grid min-h-[240px] place-items-center text-center"><div><CircleDollarSign className="mx-auto text-black/20"/><p className="mt-4 text-sm font-medium text-black/35">Configure the contract to request a live Deriv proposal.</p></div></div>}
+            {receipt ? <TradeReceipt receipt={receipt} feeDisclosure={feeDisclosure} /> : <p className="text-xs font-bold uppercase tracking-[.14em] text-black/30">Live proposal</p>}
+            {!receipt && proposal ? (
+              <TradeQuote
+                proposal={proposal}
+                currency={activeAccount.currency}
+                isVirtual={activeAccount.is_virtual}
+                secondsRemaining={secondsRemaining}
+                realMoneyConfirmed={realMoneyConfirmed}
+                disabled={loading || Boolean(pendingInstruction)}
+                onRealMoneyConfirmed={setRealMoneyConfirmed}
+                onExecute={() => void execute()}
+              />
+            ) : !receipt ? <div className="grid min-h-[240px] place-items-center text-center"><div><CircleDollarSign className="mx-auto text-black/20"/><p className="mt-4 text-sm font-medium text-black/35">Configure the contract to request a live Deriv proposal.</p></div></div> : null}
           </Surface>
-          <Feedback tone="info"><span className="font-bold">Risk notice:</span> Trading leveraged or short-duration products can result in loss. Use a Deriv virtual account first and never stake money you cannot afford to lose.</Feedback>
+          <Feedback tone="info"><span className="font-bold">Risk notice:</span> Trading leveraged or short-duration products can result in loss. Use a Deriv practice account first and never stake money you cannot afford to lose.</Feedback>
         </div>
       </div>
     </>
   );
+}
+
+function createInstructionKey() {
+  const random = globalThis.crypto;
+  if (random?.randomUUID) return random.randomUUID();
+  if (random?.getRandomValues) {
+    const values = new Uint32Array(4);
+    random.getRandomValues(values);
+    return Array.from(values, (value) => value.toString(16).padStart(8, "0")).join("-");
+  }
+  return `order-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }

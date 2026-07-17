@@ -8,7 +8,7 @@ export default function PositionDetailPage() {
   const api = useSynexAPI();
   const navigate = useNavigate();
   const { contractID = "" } = useParams();
-  const { activeAccount, activeLoginID } = useWorkspace();
+  const { activeAccount, activeLoginID, positionUpdates } = useWorkspace();
   const parsedID = Number(contractID);
   const [position, setPosition] = useState<Record<string, unknown>>();
   const [history, setHistory] = useState<Record<string, unknown>[]>([]);
@@ -35,9 +35,19 @@ export default function PositionDetailPage() {
 
   useEffect(() => {
     void load();
-    const timer = window.setInterval(() => void load(), 3000);
+    const timer = window.setInterval(() => void load(), 30_000);
     return () => window.clearInterval(timer);
   }, [load]);
+
+  const livePosition = positionUpdates[parsedID];
+  useEffect(() => {
+    if (!livePosition) return;
+    setPosition((current) => ({
+      ...current,
+      ...livePosition,
+      underlying: livePosition.symbol,
+    }));
+  }, [livePosition]);
 
   const update = async (event: FormEvent) => {
     event.preventDefault();

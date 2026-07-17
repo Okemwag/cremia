@@ -18,6 +18,9 @@ import {
 import LandingPage from "./pages/LandingPage";
 import AuthCallbackPage from "./pages/auth/AuthCallbackPage";
 import LoginPage from "./pages/auth/LoginPage";
+import LegalDocumentPage from "./pages/legal/LegalDocumentPage";
+import LegalIndexPage from "./pages/legal/LegalIndexPage";
+import LegalLayout from "./pages/legal/LegalLayout";
 
 export default function App() {
   return (
@@ -25,6 +28,10 @@ export default function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      <Route path="/legal" element={<LegalLayout />}>
+        <Route index element={<LegalIndexPage />} />
+        <Route path=":slug" element={<LegalDocumentPage />} />
+      </Route>
       <Route path="/app" element={<PlatformShell />}>
         <Route index element={<OverviewPage />} />
         <Route path="markets" element={<MarketsPage />} />

@@ -1,8 +1,19 @@
-import { ArrowRight, Link2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ArrowRight, Link2, LoaderCircle } from "lucide-react";
+import { useState } from "react";
+import { useDerivConnection } from "../../features/platform/hooks/useDerivConnection";
+import { apiErrorMessage } from "../../features/platform/services/synexApi";
 import Surface from "./Surface";
 
 export default function EmptyAccountState() {
+  const { connectDeriv, connecting } = useDerivConnection();
+  const [error, setError] = useState("");
+
+  const connect = async () => {
+    setError("");
+    try { await connectDeriv(); }
+    catch (reason) { setError(apiErrorMessage(reason)); }
+  };
+
   return (
     <Surface className="mt-8 grid min-h-[360px] place-items-center p-8 text-center">
       <div className="max-w-[440px]">
@@ -13,12 +24,16 @@ export default function EmptyAccountState() {
         <p className="mt-3 text-sm font-medium leading-relaxed text-black/40">
           Synex uses Deriv for market access and execution. Start with a virtual account while you learn the workflow.
         </p>
-        <Link
-          to="/app/connect"
+        <button
+          type="button"
+          onClick={() => void connect()}
+          disabled={connecting}
           className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white"
         >
-          Connect Deriv <ArrowRight size={15} />
-        </Link>
+          {connecting ? <LoaderCircle size={15} className="animate-spin" /> : <ArrowRight size={15} />}
+          {connecting ? "Opening Deriv…" : "Connect Deriv"}
+        </button>
+        {error && <p className="mt-4 text-sm font-medium text-red-700">{error}</p>}
       </div>
     </Surface>
   );

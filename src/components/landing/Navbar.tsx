@@ -14,7 +14,7 @@ export default function Navbar() {
       aria-label="Primary navigation"
       className="fixed inset-x-0 top-0 z-50 grid grid-cols-[1fr_auto_1fr] items-center bg-[#f2f2f0]/85 px-5 py-4 backdrop-blur-xl sm:px-10"
     >
-      <a href="#" className="justify-self-start" aria-label="Synex home">
+      <a href="/" className="justify-self-start" aria-label="Synex home">
         <img
           src="https://qclay.design/lovable/synex/logo.svg"
           alt="Synex"

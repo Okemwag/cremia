@@ -5,6 +5,7 @@ import Feedback from "../../components/dashboard/Feedback";
 import PageHeader from "../../components/dashboard/PageHeader";
 import Sparkline from "../../components/dashboard/Sparkline";
 import Surface from "../../components/dashboard/Surface";
+import { formatMarketQuote, marketStreamLabel, useMarketStream } from "../../features/platform/services/marketStream";
 import { apiErrorMessage, type ActiveSymbol, type Candle, useSynexAPI } from "../../features/platform/services/synexApi";
 
 export default function MarketsPage() {
@@ -15,6 +16,7 @@ export default function MarketsPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+	const live = useMarketStream(selected?.symbol || "");
 
   useEffect(() => {
     void api.symbols()
@@ -58,7 +60,7 @@ export default function MarketsPage() {
         <Surface className="min-h-[580px] p-6 sm:p-8">
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
             <div><p className="text-xs font-semibold uppercase tracking-[.14em] text-black/30">{selected?.market_display_name || "Market"}</p><h2 className="mt-2 text-3xl font-medium tracking-[-.05em]">{selected?.display_name || "Select an instrument"}</h2><p className="mt-2 text-sm text-black/35">{selected?.symbol}</p></div>
-            <div className="sm:text-right"><p className="text-2xl font-medium tracking-[-.04em]">{last || "—"}</p><p className={`mt-1 text-sm font-semibold ${change >= 0 ? "text-[#568f47]" : "text-red-600"}`}>{change >= 0 ? "+" : ""}{change.toFixed(2)}%</p></div>
+            <div className="sm:text-right"><div className="flex items-center gap-2 sm:justify-end"><span className={`h-2 w-2 rounded-full ${live.status === "connected" ? "bg-[#75ad62]" : "animate-pulse bg-amber-500"}`}/><span className="text-xs font-semibold text-black/35">{marketStreamLabel(live.status)}</span></div><p className="mt-2 text-2xl font-medium tracking-[-.04em] tabular-nums">{formatMarketQuote(live.tick?.quote ?? last, live.tick?.pip_size ?? selected?.pip ?? 2)}</p><p className={`mt-1 text-sm font-semibold ${change >= 0 ? "text-[#568f47]" : "text-red-600"}`}>{change >= 0 ? "+" : ""}{change.toFixed(2)}%</p></div>
           </div>
           <Sparkline candles={candles} className="mt-9 h-[360px] w-full" />
           {selected && <div className="mt-7 flex items-center justify-between border-t border-black/[.07] pt-6"><p className="text-xs font-medium text-black/35">Indicative chart · 5-minute candles</p><Link to={`/app/trade?symbol=${encodeURIComponent(selected.symbol)}`} className="inline-flex items-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white">Trade market <ArrowRight size={15}/></Link></div>}

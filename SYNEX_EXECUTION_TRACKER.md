@@ -7,6 +7,8 @@ Related strategy documents:
 - [`VCG_DERIV_GAP_ASSESSMENT.md`](VCG_DERIV_GAP_ASSESSMENT.md)
 - [`VCG_CAPABILITIES_NOT_IN_DERIV_API.md`](VCG_CAPABILITIES_NOT_IN_DERIV_API.md)
 - [`SYNEX_DERIV_GROWTH_AND_PROFITABILITY.md`](SYNEX_DERIV_GROWTH_AND_PROFITABILITY.md)
+- [`DERIV_API_ARCHITECTURE.md`](DERIV_API_ARCHITECTURE.md)
+- [`TRADE_RECONCILIATION_RUNBOOK.md`](TRADE_RECONCILIATION_RUNBOOK.md)
 
 ## Status legend
 
@@ -40,14 +42,14 @@ The product must not claim MT5, ECN, CFD, regulatory or client-money capabilitie
 | --- | --- | --- | --- |
 | Landing page | ✅ | Responsive Synex landing experience exists | Conversion analytics and final content review |
 | Dashboard shell | ✅ | Responsive application navigation and overview exist | Validate all routes with real data |
-| Preview dashboard | ✅ | Development-only populated preview is available | Keep strictly disabled in production |
+| Authentication bypass | ✅ | Frontend dashboard fails closed and requires Auth0 | Keep preview credentials and bypasses out of every build |
 | Frontend structure | ✅ | Landing, dashboard, auth and platform code are separated | Maintain boundaries as features grow |
 | Frontend validation | ✅ | Lint and production build pass | Add automated CI checks |
 | Auth0 customer login | 🟡 | Login and callback routes exist | Resolve configuration and prove real login/logout |
 | Go API | 🟡 | Trading, portfolio, onboarding, support and market routes exist | Run the complete stack and prove contracts |
-| Deriv integration | 🟡 | Legacy OAuth/WebSocket implementation exists | Migrate or formally validate against current Deriv APIs |
-| Live market streaming | 🟡 | Market snapshots and candles exist | Persistent subscriptions and reconnection |
-| Trade execution | 🟡 | Proposal, buy, sell, cancel and update routes exist | End-to-end demo trade proof |
+| Deriv integration | 🟡 | Current OAuth2 code exchange, account discovery and OTP WebSocket path are implemented | Configure a new Deriv app and prove a live practice-account journey |
+| Live market streaming | 🟡 | Public ticks plus authenticated balance, transaction and position SSE paths are implemented | Prove the authenticated stream against a registered Deriv practice account |
+| Trade execution | 🟡 | Short-lived proposals and idempotent buy instructions are persisted before execution | Reconcile uncertain outcomes and prove the complete demo journey |
 | Funding | ⬜ | Stable placeholder boundary exists | Connect the payment gateway and reconciliation |
 | Price-alert delivery | ⬜ | Alerts can be stored | Background monitoring and delivery workers |
 | Copy/social trading | ⬜ | No active product flow | Design, build and verify follower execution |
@@ -84,7 +86,7 @@ The following order should not be bypassed:
 - [ ] Confirm whether Synex may use Deriv API markup and partner commission together.
 - [ ] Select the initial Deriv partner commission model.
 - [ ] Confirm the maximum launch markup and how it will be disclosed.
-- [ ] Decide whether to migrate fully to the current Deriv OAuth 2.0 and OTP architecture.
+- [x] Decide whether to migrate fully to the current Deriv OAuth 2.0 and OTP architecture.
 - [ ] Confirm Deriv application scopes required for demo and real trading.
 - [ ] Document data retention and deletion obligations.
 - [ ] Create an architecture decision record for the initial product boundary.
@@ -120,7 +122,8 @@ The following order should not be bypassed:
 - [ ] Prove callback and return-to-dashboard behaviour.
 - [ ] Prove silent token acquisition and refresh.
 - [ ] Prove logout and session expiry.
-- [ ] Add friendly handling for denied consent, expired state and callback errors.
+- [x] Add friendly handling for denied consent, expired state and callback errors.
+- [x] Add unit regression coverage for safe return paths and customer-safe authentication errors.
 - [ ] Remove any previously exposed credentials and confirm rotation.
 - [ ] Add authentication integration tests.
 
@@ -133,7 +136,11 @@ The following order should not be bypassed:
 
 **Owner:** Unassigned  
 **Target date:** Unassigned  
-**Evidence:** _Add test run, screenshots and API response references._
+**Evidence:** Customer-safe handling is implemented in `src/config/authMessages.ts`,
+safe workspace returns are enforced in `src/config/auth.ts`, and the regression
+suite passes through `npm test`. The Go API now returns structured JSON for missing
+or expired authentication and `go test ./...` covers the protected-session boundary.
+Live tenant login, refresh and logout proof is still required before the phase exits.
 
 ---
 
@@ -146,17 +153,20 @@ The following order should not be bypassed:
 ### Tasks
 
 - [x] Create the Synex account connection UI.
-- [x] Store connected-account tokens encrypted at rest in the Go backend.
+- [x] Store the user-level Deriv access grant encrypted at rest in the Go backend.
 - [x] Verify connected account ownership in backend requests.
 - [ ] Register and configure the correct Deriv OAuth application.
-- [ ] Replace or validate legacy OAuth endpoints.
-- [ ] Implement OAuth 2.0 authorization-code exchange and refresh handling.
-- [ ] Implement current Deriv account discovery.
-- [ ] Implement OTP creation for authenticated demo and real WebSockets.
-- [ ] Separate public, demo and real WebSocket connections.
-- [ ] Add token revocation and account disconnect handling.
-- [ ] Handle multiple Deriv accounts per Synex customer.
-- [ ] Add reconnection and subscription restoration.
+- [x] Replace legacy OAuth and WebSocket endpoints.
+- [x] Implement OAuth 2.0 authorization-code exchange with PKCE.
+- [ ] Confirm and implement Deriv refresh-token rotation for the registered app.
+- [x] Implement current Deriv account discovery.
+- [x] Implement OTP creation for authenticated practice and real WebSockets.
+- [x] Separate the public WebSocket from account-specific OTP connections.
+- [x] Add local grant revocation and account disconnect handling.
+- [ ] Confirm and implement provider-side application revocation.
+- [x] Handle multiple Deriv accounts per Synex customer.
+- [x] Add public market reconnection and subscription restoration.
+- [x] Add authenticated account reconnection and subscription restoration.
 - [ ] Add rate-limit and upstream failure handling.
 - [ ] Add Deriv contract/integration tests against a demo account.
 
@@ -170,7 +180,17 @@ The following order should not be bypassed:
 
 **Owner:** Unassigned  
 **Target date:** Unassigned  
-**Evidence:** _Add Deriv app configuration and test references without secrets._
+**Evidence:** `DERIV_API_ARCHITECTURE.md` records the decision and provider boundary.
+The Go implementation uses expiring single-use PKCE transactions, server-side code
+exchange, REST account discovery and account-specific OTP WebSocket URLs. Unit tests
+in `internal/deriv/platform_test.go` pass through `go test ./...`. The shared public
+market hub restores symbol subscriptions after disconnect and a live integration probe
+received an `R_10` tick from Deriv's current public WebSocket. The account hub requests
+a fresh OTP connection and restores balance, transaction and open-contract subscriptions
+after interruption; shared-connection and reconnect tests pass under the race detector.
+Browser SSE access uses a 30-second, single-use, account-owned ticket whose hash alone is
+stored. A registered Deriv application and authenticated practice-account proof are still
+required before the phase exits.
 
 ---
 
@@ -201,12 +221,12 @@ The following order should not be bypassed:
 
 ### Reliability tasks
 
-- [ ] Prevent duplicate purchases caused by repeated clicks.
-- [ ] Expire stale proposals.
+- [x] Prevent duplicate purchases caused by repeated clicks.
+- [x] Expire stale proposals.
 - [ ] Handle insufficient balance clearly.
 - [ ] Handle closed markets and unavailable contract types.
 - [ ] Recover safely from WebSocket interruption.
-- [ ] Reconcile uncertain order outcomes before allowing a retry.
+- [x] Reconcile uncertain order outcomes before allowing a retry.
 - [ ] Add automated end-to-end tests around the demo journey.
 
 ### Exit criteria
@@ -218,7 +238,22 @@ The following order should not be bypassed:
 
 **Owner:** Unassigned  
 **Target date:** Unassigned  
-**Evidence:** _Add test report and recorded demo journey._
+**Evidence:** Account loading now refreshes balance snapshots through Deriv REST and
+marks fallback values as last-known rather than live. Migration `000009` adds durable,
+single-use proposal claims and user-scoped idempotency keys. Successful retries return
+the stored execution response; processing or uncertain orders block resubmission.
+Frontend confirmation reuses the same key after network errors and shows the quote
+countdown. It also checks the stored order status after a lost response and continues
+polling pending instructions without submitting another purchase. A background worker
+conservatively reconciles uncertain execution against Deriv statements and escalates
+missing or ambiguous evidence to a protected operations queue. New buys remain blocked
+until review is resolved, and review transitions notify the customer. The process is
+documented in `TRADE_RECONCILIATION_RUNBOOK.md`. Provider errors are translated into
+customer-safe balance, market and pricing messages. The full SQL migration sequence and
+review, stream-ticket and customer-receipt lifecycles passed against isolated PostgreSQL
+17 instances after all twelve migrations were applied. Local Go tests pass under the race detector,
+Go vet passes, and frontend lint, 32 frontend tests and the production build pass. A real Deriv
+practice-account journey is still required before the phase exits.
 
 ---
 
@@ -226,7 +261,7 @@ The following order should not be bypassed:
 
 **Goal:** Deliver an enjoyable mobile-first Deriv trading experience.
 
-**Status:** ⬜
+**Status:** 🟡
 
 ### Market experience
 
@@ -234,24 +269,24 @@ The following order should not be bypassed:
 - [ ] Add supported timeframes.
 - [ ] Add symbol search and market categories.
 - [ ] Add favourites and recent markets.
-- [ ] Add live bid, ask or applicable proposal information.
+- [x] Add live indicative tick and executable proposal information.
 - [ ] Add market availability and contract restrictions.
-- [ ] Add chart loading, stale-data and disconnected states.
+- [x] Add live-price connecting, stale-data and reconnecting states.
 
 ### Order experience
 
 - [ ] Build contract-specific order forms.
 - [ ] Support applicable barriers, durations, multipliers and growth rates.
-- [ ] Display all fees and markup before confirmation.
-- [ ] Display maximum loss and potential payout prominently.
-- [ ] Add explicit real-account confirmation.
+- [x] Display all fees and markup before confirmation.
+- [x] Display maximum loss and potential payout prominently.
+- [x] Add explicit real-account confirmation.
 - [ ] Add responsible stake and exposure warnings.
-- [ ] Add order receipts and contract detail views.
-- [ ] Add live transaction and balance updates.
+- [x] Add order receipts and contract detail views.
+- [x] Add live transaction and balance updates.
 
 ### Portfolio and analytics
 
-- [ ] Stream open positions.
+- [x] Stream open positions.
 - [ ] Add filters and account-level summaries.
 - [ ] Add realised and unrealised performance breakdowns.
 - [ ] Add date-range statement and profit filtering.
@@ -267,7 +302,27 @@ The following order should not be bypassed:
 
 **Owner:** Unassigned  
 **Target date:** Unassigned  
-**Evidence:** _Add performance, accessibility and browser test reports._
+**Evidence:** The Go market hub shares one upstream Deriv subscription per symbol,
+bounds symbols and browser subscribers, drops superseded ticks under backpressure,
+reconnects with jittered backoff, restores the symbol subscription and releases idle
+streams. The public SSE route adds heartbeats and disconnect cleanup. Markets and Trade
+display an explicitly indicative live tick with connected, paused and reconnecting
+states while preserving Deriv proposals as the executable price. The account hub shares
+one OTP WebSocket per user/account, normalizes balance, transaction and open-contract
+events, persists streamed balances, restores subscriptions after disconnect and serves
+the browser through expiring one-time SSE tickets. The workspace updates the selected
+balance, refreshes activity on transactions and applies live position values and terminal
+removals without manual refresh. Local reconnect and shared-subscription tests pass under
+the Go race detector, and an opt-in live integration test received a real `R_10` tick from
+`wss://api.derivws.com/trading/v1/options/ws/public`. The order ticket now separates
+indicative and executable prices, displays maximum loss, payout, potential profit and the
+zero separate Synex fee, and distinguishes practice from real-money execution. Real buys
+require a backend-enforced acknowledgement that is persisted with the operation. Durable,
+owner-scoped receipts expose normalized pending, review, failed and successful states plus
+provider references without exposing raw provider payloads. All twelve migrations and the
+single-use ticket, receipt and reconciliation lifecycles passed against isolated PostgreSQL
+17 databases. Frontend lint, 32 tests and the production build pass. Authenticated provider streaming still needs
+a registered practice-account proof before Phase 2 and the demo journey can exit.
 
 ---
 
@@ -552,9 +607,31 @@ Targets are planning assumptions, not guarantees. Update them when real cohort d
 
 ## Launch gates
 
+### Legal foundation progress
+
+- [x] Add a public, versioned legal-document centre to the web product.
+- [x] Add privacy, terms, trading-risk, platform/Deriv, order-transmission, financial-crime, cookie, complaints, and data-rights drafts.
+- [x] Link landing-page legal navigation to real routes.
+- [x] Add Android access to the same legal catalogue.
+- [x] Add backend legal-document metadata and auditable, versioned acceptance storage.
+- [x] Prevent draft documents from being recorded as production acceptance.
+- [ ] Confirm the registered legal entity, registration number, and office address.
+- [ ] Confirm governing law, courts, launch countries, and restricted jurisdictions.
+- [ ] Confirm that `privacy@synex.app` and `support@synex.app` are monitored contacts.
+- [ ] Obtain jurisdiction-specific legal and compliance approval.
+- [ ] Publish approved document versions and activate required acceptance flows.
+- [ ] Complete Google Play Data safety and Financial features declarations from the release build.
+
 ### Internal demo gate
 
-- [ ] Auth0 authentication works.
+- [x] Remove frontend and Android authentication bypass paths.
+- [x] Implement SPA Universal Login, callback, protected routing, API tokens, and logout.
+- [x] Validate issuer, audience, RS256 signature, expiry, and subject in the Go API.
+- [x] Provision the local Synex user on the first authenticated API request.
+- [x] Implement Android Auth0 PKCE and Keystore-encrypted renewable credentials.
+- [ ] Add the Android Native Application client ID and signing fingerprints in Auth0.
+- [ ] Grant the SPA and Native applications user-delegated access to the Synex API.
+- [ ] Complete a real browser and Android sign-in with customer credentials.
 - [ ] Deriv demo connection works.
 - [ ] End-to-end demo trade reconciles.
 - [ ] No credential is exposed to the browser or repository.
@@ -645,9 +722,8 @@ Copy this section for each weekly review.
 
 ## Immediate next actions
 
-1. Resolve and prove Auth0 login without the development bypass.
-2. Confirm the current Deriv OAuth 2.0/OTP migration plan.
-3. Run the Go API with PostgreSQL and the frontend as one local stack.
-4. Complete one real Deriv demo-account trading journey.
+1. Resolve and prove Auth0 login with the configured SPA and API audience.
+2. Register the current Deriv OAuth 2.0 application and exact callback.
+3. Run the Go API, PostgreSQL and frontend as one configured local stack.
+4. Complete one real Deriv practice-account trading and authenticated-stream journey.
 5. Record the journey as the first formal end-to-end acceptance test.
-

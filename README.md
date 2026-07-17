@@ -14,8 +14,10 @@ src/
 │   ├── context/               platform state providers
 │   ├── layouts/               authenticated workspace shell
 │   └── services/              typed API client
+├── features/legal/            versioned legal-document catalogue
 └── pages/
     ├── dashboard/             authenticated route screens
+    ├── legal/                 public legal centre and document routes
     └── LandingPage.tsx        public landing route
 ```
 
@@ -29,7 +31,8 @@ npm install
 npm run dev
 ```
 
-Set `VITE_DEV_AUTH_BYPASS=true` only when you need a populated local dashboard preview without Auth0. Production builds ignore this bypass.
+The dashboard has no authentication bypass. Configure Auth0 before opening
+`/app`; unauthenticated visitors are redirected through Universal Login.
 
 ## Auth0 setup
 
@@ -41,3 +44,14 @@ The frontend login needs an Auth0 Single Page Application. Calling the protected
 4. Add `http://localhost:5173` to Allowed Logout URLs and Allowed Web Origins.
 
 The Auth0 client secret is confidential. Keep it in server-only configuration if a server-side OAuth flow later needs it; never add it to this Vite project under a `VITE_` name.
+
+The dashboard is fail-closed: there is no development authentication bypass.
+See [AUTH0_SETUP.md](./AUTH0_SETUP.md) for the complete SPA, API, and Android
+tenant configuration and customer-journey checklist.
+
+## Legal centre
+
+The public legal centre is available at `/legal`. Its documents are deliberately
+marked as drafts until the registered operator, governing law, launch countries,
+contact aliases, and final legal review are confirmed. Draft documents must not be
+treated as production consent.

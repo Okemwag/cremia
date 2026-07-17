@@ -3,11 +3,11 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
-import { authConfig } from "./config/auth";
+import { authConfig, safeReturnTo } from "./config/auth";
 import "./index.css";
 
 function onRedirectCallback(appState?: AppState) {
-  window.history.replaceState({}, document.title, appState?.returnTo || window.location.pathname);
+  window.history.replaceState({}, document.title, safeReturnTo(appState?.returnTo));
 }
 
 createRoot(document.getElementById("root")!).render(
@@ -17,8 +17,12 @@ createRoot(document.getElementById("root")!).render(
       clientId={authConfig.clientId}
       authorizationParams={{
         redirect_uri: authConfig.callbackUrl,
+        scope: "openid profile email",
         ...(authConfig.audience ? { audience: authConfig.audience } : {}),
       }}
+      cacheLocation="memory"
+      useRefreshTokens
+      useRefreshTokensFallback
       onRedirectCallback={onRedirectCallback}
     >
       <BrowserRouter>

@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import type { AccountPositionEvent, AccountStreamStatus, AccountTransactionEvent } from "../services/accountStream";
 import type { SynexAccount } from "../services/synexApi";
 
 export type WorkspaceValue = {
@@ -7,8 +8,10 @@ export type WorkspaceValue = {
   activeLoginID: string;
   setActiveLoginID: (loginID: string) => void;
   loadingAccounts: boolean;
-  previewMode: boolean;
   refreshAccounts: () => Promise<void>;
+  accountStreamStatus: AccountStreamStatus;
+  lastTransaction?: AccountTransactionEvent;
+  positionUpdates: Record<number, AccountPositionEvent>;
 };
 
 export const WorkspaceContext = createContext<WorkspaceValue | null>(null);

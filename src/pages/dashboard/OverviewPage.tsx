@@ -7,45 +7,33 @@ import PageHeader from "../../components/dashboard/PageHeader";
 import Sparkline from "../../components/dashboard/Sparkline";
 import Surface from "../../components/dashboard/Surface";
 import { useWorkspace } from "../../features/platform/context/WorkspaceContext";
-import { previewCandles, previewPositions, previewSymbols } from "../../features/platform/services/previewData";
+import { mergePositionUpdate } from "../../features/platform/services/accountStream";
 import { apiErrorMessage, formatMoney, type ActiveSymbol, type Candle, type PortfolioContract, useSynexAPI } from "../../features/platform/services/synexApi";
 
 export default function OverviewPage() {
   const api = useSynexAPI();
-  const { activeAccount, activeLoginID, previewMode } = useWorkspace();
+  const { activeAccount, activeLoginID, lastTransaction, positionUpdates } = useWorkspace();
   const [positions, setPositions] = useState<PortfolioContract[]>([]);
   const [symbols, setSymbols] = useState<ActiveSymbol[]>([]);
   const [candles, setCandles] = useState<Candle[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (previewMode) {
-      setSymbols(previewSymbols);
-      return;
-    }
     void api.symbols().then((items) => setSymbols(items.slice(0, 6))).catch((reason) => setError(apiErrorMessage(reason)));
-  }, [api, previewMode]);
+  }, [api]);
 
   useEffect(() => {
-    if (previewMode) {
-      setPositions(previewPositions);
-      return;
-    }
     if (!activeLoginID) {
       setPositions([]);
       return;
     }
     void api.portfolio(activeLoginID).then(setPositions).catch((reason) => setError(apiErrorMessage(reason)));
-  }, [activeLoginID, api, previewMode]);
+  }, [activeLoginID, api, lastTransaction?.transaction_id]);
 
   useEffect(() => {
-    if (previewMode) {
-      setCandles(previewCandles);
-      return;
-    }
     const symbol = symbols[0]?.symbol;
     if (symbol) void api.candles(symbol, 300, 80).then(setCandles).catch(() => setCandles([]));
-  }, [api, previewMode, symbols]);
+  }, [api, symbols]);
 
   if (!activeAccount) {
     return (
@@ -56,13 +44,14 @@ export default function OverviewPage() {
     );
   }
 
-  const balance = Number(activeAccount.live?.balance || 0);
-  const openProfit = positions.reduce((sum, item) => sum + Number(item.profit || 0), 0);
+  const livePositions = Object.values(positionUpdates).reduce(mergePositionUpdate, positions);
+  const balance = Number(activeAccount.balance || 0);
+  const openProfit = livePositions.reduce((sum, item) => sum + Number(item.profit || 0), 0);
   const metrics = [
-    { label: "Available balance", value: formatMoney(balance, activeAccount.currency), icon: CircleDollarSign, note: previewMode ? "Preview balance" : "Live from Deriv" },
-    { label: "Open positions", value: String(positions.length), icon: WalletCards, note: positions.length ? "Currently active" : "No market exposure" },
+    { label: "Available balance", value: formatMoney(balance, activeAccount.currency), icon: CircleDollarSign, note: activeAccount.balance_fresh ? "Updated from Deriv" : "Last known balance" },
+    { label: "Open positions", value: String(livePositions.length), icon: WalletCards, note: livePositions.length ? "Currently active" : "No market exposure" },
     { label: "Open profit", value: formatMoney(openProfit, activeAccount.currency), icon: ArrowUpRight, note: "Unrealised result" },
-    { label: "Account", value: activeAccount.is_virtual ? "Virtual" : "Real", icon: ShieldCheck, note: activeAccount.login_id },
+    { label: "Account", value: activeAccount.is_virtual ? "Practice" : "Real", icon: ShieldCheck, note: activeAccount.login_id },
   ];
 
   return (

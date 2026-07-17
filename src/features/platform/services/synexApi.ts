@@ -1,7 +1,8 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useMemo } from "react";
+import { isSessionExpiredError } from "../../../config/authMessages";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080").replace(/\/$/, "");
+export const SYNEX_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080").replace(/\/$/, "");
 
 export type SynexAccount = {
   id: string;
@@ -10,7 +11,10 @@ export type SynexAccount = {
   landing_company: string;
   is_virtual: boolean;
   connected_at: string;
-  status: "connected" | "unavailable";
+  status: "active" | "inactive";
+  balance: number;
+  balance_fresh: boolean;
+  balance_updated_at?: string;
   live?: {
     balance?: number;
     currency?: string;
@@ -18,6 +22,11 @@ export type SynexAccount = {
     fullname?: string;
     loginid?: string;
   };
+};
+
+export type PlatformSession = {
+  authenticated: true;
+  user: { id: string; email: string };
 };
 
 export type ActiveSymbol = {
@@ -138,9 +147,14 @@ export type PortfolioContract = {
   symbol?: string;
   buy_price: number;
   bid_price?: number;
+  current_spot?: number;
   payout?: number;
   profit?: number;
+  profit_percentage?: number;
   currency?: string;
+  status?: string;
+  is_expired?: boolean;
+  is_sold?: boolean;
   purchase_time?: number;
   expiry_time?: number;
 };
@@ -154,12 +168,55 @@ export type Proposal = {
   longcode?: string;
   contract_type?: string;
   underlying_symbol?: string;
+  maximum_loss?: number;
+  synex_fee?: number;
+  price_source?: "deriv";
+  synex_expires_at: string;
+};
+
+export type OrderReceipt = {
+  order_id: string;
+  order_reference: string;
+  login_id: string;
+  is_virtual: boolean;
+  real_money_confirmed: boolean;
+  status: "pending" | "review" | "succeeded" | "failed";
+  proposal_id: string;
+  symbol: string;
+  contract_type: string;
+  currency: string;
+  purchase_price: number;
+  maximum_loss: number;
+  potential_payout: number;
+  synex_fee: number;
+  price_source: "deriv";
+  basis: string;
+  requested_amount: number;
+  duration?: number;
+  duration_unit?: string;
+  barrier?: string;
+  multiplier?: number;
+  growth_rate?: number;
+  stop_loss?: number;
+  take_profit?: number;
+  longcode: string;
+  contract_id?: number;
+  provider_transaction_id?: number;
+  error_code?: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ContractOption = {
   contract_type: string;
   contract_display?: string;
   sentiment?: string;
+};
+
+export type OrderStatus = {
+  status: "pending" | "succeeded" | "failed" | "review";
+  contract_id: number;
+  updated_at: string;
 };
 
 export class APIError extends Error {
@@ -185,7 +242,7 @@ export class SynexAPI {
     if (init.body) headers.set("Content-Type", "application/json");
     if (authenticated) headers.set("Authorization", `Bearer ${await this.getToken()}`);
 
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await fetch(`${SYNEX_API_BASE_URL}${path}`, {
       ...init,
       headers,
       credentials: "include",
@@ -237,13 +294,24 @@ export class SynexAPI {
     return result.accounts;
   }
 
+  async session() {
+    return this.request<PlatformSession>("/v1/auth/session");
+  }
+
   async connectURL() {
     return this.request<{ authorize_url: string }>("/v1/auth/deriv/connect-url");
   }
 
-  async disconnect(loginID: string) {
-    return this.request<void>(`/v1/auth/deriv/disconnect?login_id=${encodeURIComponent(loginID)}`, {
+  async disconnect() {
+    return this.request<void>("/v1/auth/deriv/disconnect", {
       method: "DELETE",
+    });
+  }
+
+  async accountStreamTicket(loginID: string) {
+    return this.request<{ ticket: string; expires_in: number }>("/v1/streams/account-ticket", {
+      method: "POST",
+      body: JSON.stringify({ login_id: loginID }),
     });
   }
 
@@ -289,12 +357,23 @@ export class SynexAPI {
     return result.data;
   }
 
-  async buy(input: Record<string, unknown>) {
+  async buy(input: Record<string, unknown>, idempotencyKey: string) {
     const result = await this.request<{ data: Record<string, unknown> }>("/v1/trading/buy", {
       method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(input),
     });
     return result.data;
+  }
+
+  async orderStatus(idempotencyKey: string) {
+    return this.request<OrderStatus>(`/v1/trading/order-status?idempotency_key=${encodeURIComponent(idempotencyKey)}`);
+  }
+
+  async orderReceipt(idempotencyKey: string) {
+    return this.request<{ data: OrderReceipt; fee_disclosure: string }>(
+      `/v1/trading/receipt?idempotency_key=${encodeURIComponent(idempotencyKey)}`,
+    );
   }
 
   async sell(input: Record<string, unknown>) {
@@ -430,14 +509,37 @@ export function useSynexAPI() {
 }
 
 export function formatMoney(value: number | undefined, currency = "USD") {
-  return new Intl.NumberFormat("en", {
-    style: "currency",
-    currency: currency || "USD",
-    maximumFractionDigits: 2,
-  }).format(value || 0);
+  const amount = Number.isFinite(value) ? Number(value) : 0;
+  const code = (currency || "USD").toUpperCase();
+  try {
+    return new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${new Intl.NumberFormat("en", { maximumFractionDigits: 8 }).format(amount)} ${code}`;
+  }
 }
 
 export function apiErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  return "Something went wrong. Please try again.";
+  if (isSessionExpiredError(error)) return "Your session has ended. Please sign in again.";
+  if (error instanceof APIError) {
+    const code = error.code.toLowerCase();
+    if (error.code === "quote_expired" || error.code === "price_limit_exceeded") return "That price is no longer available. Request a new price before buying.";
+    if (error.code === "order_status_pending") return "Your order is still being checked. Do not submit it again; review your portfolio shortly.";
+    if (error.code === "account_order_under_review") return "A recent order on this account is still being checked. Wait for it to be resolved before placing another order.";
+    if (error.code === "order_rejected") return "Deriv did not accept the order. Request a new price before trying again.";
+    if (error.code === "real_money_confirmation_required") return "Confirm that you understand the real-money risk before placing this order.";
+    if (code.includes("insufficient") || code.includes("balance")) return "Your account does not have enough available balance for this order.";
+    if (code.includes("market") && code.includes("closed")) return "This market is currently closed. Choose another market or try again later.";
+    if (code.includes("price") || code.includes("proposal")) return "That price is no longer available. Request a new price before buying.";
+    if (error.status === 403) return "You don’t have access to this action.";
+    if (error.status === 404) return "We couldn’t find what you requested.";
+    if (error.status === 409) return "This action conflicts with the latest account information. Refresh and try again.";
+    if (error.status === 429) return "You’re moving quickly. Wait a moment and try again.";
+    if (error.status >= 500) return "Synex is temporarily unavailable. Please try again shortly.";
+  }
+  if (error instanceof TypeError) return "We couldn’t connect to Synex. Check your connection and try again.";
+  return "We couldn’t complete that action. Please try again.";
 }

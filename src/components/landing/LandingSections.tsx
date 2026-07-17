@@ -451,7 +451,7 @@ function MarketsSection() {
 
 const securityItems = [
   { icon: LockKeyhole, title: "Encrypted OAuth tokens", copy: "Connected Deriv tokens are protected with AES-256-GCM encryption before database storage." },
-  { icon: Fingerprint, title: "Auth0 platform identity", copy: "Platform sessions stay separate from the Deriv account-linking flow." },
+  { icon: Fingerprint, title: "Secure account access", copy: "Your Synex sign-in stays separate from your connected trading accounts." },
   { icon: ShieldCheck, title: "Explicit execution", copy: "A contract is bought only after you review a live proposal and confirm the maximum price." },
   { icon: BadgeCheck, title: "Auditable actions", copy: "Proposal, buy, and sell attempts are recorded for operational traceability." },
 ];
@@ -552,6 +552,12 @@ function FinalCta() {
 }
 
 function Footer() {
+  const legalLinks: Record<string, string> = {
+    Security: "/legal/platform-disclosure",
+    Privacy: "/legal/privacy",
+    Terms: "/legal/terms",
+    Disclosures: "/legal/risk",
+  };
   return (
     <footer className="bg-[#0a0b0b] px-5 pb-8 pt-16 text-white sm:px-10 md:pt-24">
       <div className="mx-auto max-w-[1440px] border-t border-white/10 pt-12">
@@ -571,7 +577,7 @@ function Footer() {
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/30">{heading}</p>
               <div className="mt-5 flex flex-col gap-3">
                 {(links as string[]).map((link) => (
-                  <a key={link} href={`#${link.toLowerCase()}`} className="w-fit text-sm font-medium text-white/65 transition-colors hover:text-white">
+                  <a key={link} href={heading === "Legal" ? legalLinks[link] : `#${link.toLowerCase()}`} className="w-fit text-sm font-medium text-white/65 transition-colors hover:text-white">
                     {link}
                   </a>
                 ))}

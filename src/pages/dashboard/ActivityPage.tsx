@@ -15,7 +15,7 @@ function firstValue(row: Record<string, unknown>, keys: string[]) {
 
 export default function ActivityPage() {
   const api = useSynexAPI();
-  const { activeAccount, activeLoginID } = useWorkspace();
+  const { activeAccount, activeLoginID, lastTransaction } = useWorkspace();
   const [tab, setTab] = useState<ActivityTab>("statement");
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ export default function ActivityPage() {
     setLoading(true); setError("");
     const request = tab === "statement" ? api.statement(activeLoginID) : api.profitTable(activeLoginID);
     void request.then(setRows).catch((reason) => setError(apiErrorMessage(reason))).finally(() => setLoading(false));
-  }, [activeLoginID, api, tab]);
+  }, [activeLoginID, api, tab, lastTransaction?.transaction_id]);
 
   if (!activeAccount) {
     return <><PageHeader eyebrow="Account history" title="Activity" description="Statements and completed contract results appear here." /><EmptyAccountState /></>;
