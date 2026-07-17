@@ -9,7 +9,7 @@ import TradeQuote from "../../components/dashboard/TradeQuote";
 import TradeReceipt from "../../components/dashboard/TradeReceipt";
 import { useWorkspace } from "../../features/platform/context/WorkspaceContext";
 import { formatMarketQuote, marketStreamLabel, useMarketStream } from "../../features/platform/services/marketStream";
-import { apiErrorMessage, type ActiveSymbol, type ContractOption, type OrderReceipt, type Proposal, useSynexAPI } from "../../features/platform/services/synexApi";
+import { APIError, apiErrorMessage, type ActiveSymbol, type ContractOption, type OrderReceipt, type Proposal, useSynexAPI } from "../../features/platform/services/synexApi";
 
 export default function TradePage() {
   const api = useSynexAPI();
@@ -35,6 +35,7 @@ export default function TradePage() {
   const [payoutPerPoint, setPayoutPerPoint] = useState("");
   const [selectedTick, setSelectedTick] = useState("");
   const [proposal, setProposal] = useState<Proposal>();
+  const [lastProposalInput, setLastProposalInput] = useState<Record<string, unknown>>();
   const [instructionKey, setInstructionKey] = useState("");
   const [secondsRemaining, setSecondsRemaining] = useState(0);
   const [realMoneyConfirmed, setRealMoneyConfirmed] = useState(false);
@@ -115,12 +116,36 @@ export default function TradePage() {
     };
   }, [api, loadReceipt, pendingInstruction]);
 
+  useEffect(() => {
+    setProposal(undefined);
+    setLastProposalInput(undefined);
+    setRealMoneyConfirmed(false);
+  }, [symbol, contractType, amount, basis, expiryMode, duration, durationUnit, dateExpiry, barrier, barrier2, multiplier, growthRate, cancellation, stopLoss, takeProfit, payoutPerPoint, selectedTick]);
+
   if (!activeAccount) {
     return <><PageHeader eyebrow="Place a trade" title="Trade" description="Connect your Deriv account to get live prices and start trading." /><EmptyAccountState /></>;
   }
 
+  const loadFreshProposal = async (input: Record<string, unknown>) => {
+    const nextProposal = await api.proposal(input);
+    setProposal(nextProposal);
+    setLastProposalInput(input);
+    setInstructionKey(createInstructionKey());
+    setRealMoneyConfirmed(false);
+    return nextProposal;
+  };
+
   const requestProposal = async (event: FormEvent) => {
     event.preventDefault();
+    const validationError = validateProposalForm({
+      symbol, contractType, amount, basis, expiryMode, duration, durationUnit, dateExpiry,
+      barrier, barrier2, multiplier, growthRate, cancellation, stopLoss, takeProfit,
+      payoutPerPoint, selectedTick,
+    }, fields, selectedContract);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setLoading(true); setError(""); setSuccess(""); setProposal(undefined); setReceipt(undefined); setFeeDisclosure(""); setRealMoneyConfirmed(false);
     try {
       const input: Record<string, unknown> = {
@@ -146,17 +171,29 @@ export default function TradePage() {
       assignNumber(input, "take_profit", fields.limitOrder ? takeProfit : "");
       assignNumber(input, "payout_per_point", fields.payoutPerPoint ? payoutPerPoint : "");
       assignNumber(input, "selected_tick", fields.selectedTick ? selectedTick : "");
-      const nextProposal = await api.proposal(input);
-      setProposal(nextProposal);
-      setInstructionKey(createInstructionKey());
+      await loadFreshProposal(input);
     } catch (reason) { setError(apiErrorMessage(reason)); }
     finally { setLoading(false); }
   };
 
   const execute = async () => {
-    if (!proposal || secondsRemaining <= 0) {
-      setProposal(undefined);
-      setError("That quote expired — prices move fast. Get a fresh price and try again.");
+    if (!proposal) return;
+    if (secondsRemaining <= 0) {
+      if (!lastProposalInput) {
+        setProposal(undefined);
+        setError("That quote expired. Review the trade details and request a fresh price.");
+        return;
+      }
+      setLoading(true); setError("");
+      try {
+        await loadFreshProposal(lastProposalInput);
+        setError("The previous quote expired, so we refreshed it. Review the new price before confirming.");
+      } catch (reason) {
+        setProposal(undefined);
+        setError(apiErrorMessage(reason));
+      } finally {
+        setLoading(false);
+      }
       return;
     }
     if (!activeAccount.is_virtual && !realMoneyConfirmed) {
@@ -170,6 +207,18 @@ export default function TradePage() {
       setSuccess(`Trade placed${finalReceipt.contract_id || result.contract_id ? ` · Contract ${String(finalReceipt.contract_id || result.contract_id)}` : ""}. You can follow it in your portfolio.`);
       setProposal(undefined);
     } catch (reason) {
+      if (reason instanceof APIError && (reason.code === "quote_expired" || reason.code === "price_limit_exceeded")) {
+        try {
+          if (!lastProposalInput) throw reason;
+          await loadFreshProposal(lastProposalInput);
+          setError("The price changed before the order was placed. Review the refreshed quote and confirm again.");
+        } catch (refreshReason) {
+          setProposal(undefined);
+          setError(apiErrorMessage(refreshReason));
+        }
+        setLoading(false);
+        return;
+      }
       try {
         const order = await api.orderStatus(instructionKey);
         if (order.status === "pending") {
@@ -211,7 +260,7 @@ export default function TradePage() {
           <form onSubmit={requestProposal} className="grid gap-6">
             <div className="flex items-center justify-between rounded-2xl bg-[#171917] p-5 text-white"><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-white/35">Market price now</p><p className="mt-2 text-sm font-semibold">{selectedMarket?.display_name || symbol || "Pick a market"}</p></div><div className="text-right"><div className="flex items-center justify-end gap-2 text-xs font-semibold text-white/40"><span className={`h-2 w-2 rounded-full ${market.status === "connected" ? "bg-[#8ac777]" : "animate-pulse bg-amber-400"}`}/>{marketStreamLabel(market.status)}</div><p className="mt-2 text-2xl font-medium tabular-nums">{formatMarketQuote(market.tick?.quote, market.tick?.pip_size ?? selectedMarket?.pip ?? 2)}</p></div></div>
             <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Market<select value={symbol} onChange={(event) => setSymbol(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none focus:border-black/30">{symbols.map((item) => <option key={item.symbol} value={item.symbol}>{item.display_name} · {item.symbol}</option>)}</select></label>
-            <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Trade type<select value={contractType} onChange={(event) => setContractType(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none focus:border-black/30">{contracts.map((item) => <option key={item.contract_type} value={item.contract_type}>{item.contract_display || item.contract_type}</option>)}</select><span className="mt-2 block text-xs font-normal normal-case text-black/35">Showing the trade types available for this market right now.</span></label>
+            <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Trade type<select value={contractType} onChange={(event) => setContractType(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none focus:border-black/30">{contracts.map((item) => <option key={item.contract_type} value={item.contract_type}>{item.contract_display || item.contract_type}</option>)}</select><span className="mt-2 block text-xs font-normal normal-case text-black/35">Available for this market now. Deriv checks the selected account and regional availability again when pricing the trade.</span></label>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Amount<input type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold outline-none"/></label>
               <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">Amount means<select value={basis} onChange={(event) => setBasis(event.target.value as "stake" | "payout")} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none"><option value="stake">My stake</option><option value="payout">Target payout</option></select></label>
@@ -224,13 +273,13 @@ export default function TradePage() {
               </> : <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35 sm:col-span-2">Expires at<input type="datetime-local" value={dateExpiry} onChange={(event) => setDateExpiry(event.target.value)} className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none"/></label>}
             </div>
             {(fields.barrier || fields.barrier2) && <div className="grid gap-4 sm:grid-cols-2">
-              {fields.barrier && <TradeField label={fields.digitBarrier ? "Predicted digit / barrier" : "Barrier"} value={barrier} onChange={setBarrier} placeholder={fields.barrierHint}/>}
-              {fields.barrier2 && <TradeField label="Second barrier" value={barrier2} onChange={setBarrier2} placeholder={fields.secondBarrierHint}/>}
+              {fields.barrier && <TradeField required={fields.barrierRequired} label={fields.digitBarrier ? "Predicted digit / barrier" : "Barrier"} value={barrier} onChange={setBarrier} placeholder={fields.barrierHint}/>}
+              {fields.barrier2 && <TradeField required={fields.barrier2Required} label="Second barrier" value={barrier2} onChange={setBarrier2} placeholder={fields.secondBarrierHint}/>}
             </div>}
             {(fields.multiplier || fields.growthRate || fields.selectedTick || fields.payoutPerPoint) && <div className="grid gap-4 sm:grid-cols-2">
-              {fields.multiplier && <TradeField label="Multiplier" value={multiplier} onChange={setMultiplier} type="number" placeholder={fields.multiplierHint}/>}
-              {fields.growthRate && <TradeField label="Growth rate" value={growthRate} onChange={setGrowthRate} type="number" placeholder={fields.growthRateHint}/>}
-              {fields.selectedTick && <TradeField label="Selected tick" value={selectedTick} onChange={setSelectedTick} type="number" placeholder={fields.selectedTickHint}/>}
+              {fields.multiplier && <TradeField required={fields.multiplierRequired} label="Multiplier" value={multiplier} onChange={setMultiplier} type="number" placeholder={fields.multiplierHint}/>}
+              {fields.growthRate && <TradeField required={fields.growthRateRequired} label="Growth rate" value={growthRate} onChange={setGrowthRate} type="number" placeholder={fields.growthRateHint}/>}
+              {fields.selectedTick && <TradeField required={fields.selectedTickRequired} label="Selected tick" value={selectedTick} onChange={setSelectedTick} type="number" placeholder={fields.selectedTickHint}/>}
               {fields.payoutPerPoint && <TradeField label="Payout per point" value={payoutPerPoint} onChange={setPayoutPerPoint} type="number" placeholder={fields.payoutHint}/>}
             </div>}
             {fields.cancellation && <TradeField label="Cancellation duration" value={cancellation} onChange={setCancellation} placeholder={fields.cancellationHint}/>}
@@ -282,9 +331,10 @@ type TradeFieldProps = {
   onChange: (value: string) => void;
   type?: "text" | "number";
   placeholder?: string;
+  required?: boolean;
 };
 
-function TradeField({ label, value, onChange, type = "text", placeholder }: TradeFieldProps) {
+function TradeField({ label, value, onChange, type = "text", placeholder, required = false }: TradeFieldProps) {
   return (
     <label className="text-xs font-bold uppercase tracking-[.13em] text-black/35">
       {label}
@@ -292,12 +342,123 @@ function TradeField({ label, value, onChange, type = "text", placeholder }: Trad
         type={type}
         step={type === "number" ? "any" : undefined}
         value={value}
+        required={required}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         className="mt-2 w-full rounded-xl border border-black/[.08] bg-white/60 px-4 py-3.5 text-sm font-semibold normal-case outline-none focus:border-black/30"
       />
     </label>
   );
+}
+
+type ProposalFormValues = {
+  symbol: string;
+  contractType: string;
+  amount: string;
+  basis: "stake" | "payout";
+  expiryMode: "duration" | "date";
+  duration: string;
+  durationUnit: string;
+  dateExpiry: string;
+  barrier: string;
+  barrier2: string;
+  multiplier: string;
+  growthRate: string;
+  cancellation: string;
+  stopLoss: string;
+  takeProfit: string;
+  payoutPerPoint: string;
+  selectedTick: string;
+};
+
+type ContractFields = ReturnType<typeof contractFields>;
+
+function validateProposalForm(values: ProposalFormValues, fields: ContractFields, contract?: ContractOption) {
+  if (!values.symbol) return "Choose a market before requesting a price.";
+  if (!values.contractType) return "Choose a trade type before requesting a price.";
+
+  const amount = Number(values.amount);
+  if (!Number.isFinite(amount) || amount <= 0) return "Enter a stake or payout greater than zero.";
+  if (values.basis === "stake" && contract?.min_stake != null && amount < contract.min_stake) {
+    return `The minimum stake for this trade is ${contract.min_stake}.`;
+  }
+  if (values.basis === "stake" && contract?.max_stake != null && amount > contract.max_stake) {
+    return `The maximum stake for this trade is ${contract.max_stake}.`;
+  }
+
+  if (values.expiryMode === "duration") {
+    const duration = Number(values.duration);
+    if (!Number.isInteger(duration) || duration <= 0) return "Enter a whole-number duration greater than zero.";
+    if (!["t", "s", "m", "h", "d"].includes(values.durationUnit)) return "Choose a valid duration unit.";
+    const minDuration = parseDurationLimit(contract?.min_contract_duration);
+    const maxDuration = parseDurationLimit(contract?.max_contract_duration);
+    if (minDuration && durationComparable(values.durationUnit, minDuration.unit) && duration < minDuration.value) {
+      return `The minimum duration for this trade is ${contract?.min_contract_duration}.`;
+    }
+    if (maxDuration && durationComparable(values.durationUnit, maxDuration.unit) && duration > maxDuration.value) {
+      return `The maximum duration for this trade is ${contract?.max_contract_duration}.`;
+    }
+  } else {
+    const expiry = new Date(values.dateExpiry).getTime();
+    if (!values.dateExpiry || !Number.isFinite(expiry) || expiry <= Date.now()) return "Choose an expiry date and time in the future.";
+  }
+
+  const barrierPattern = /^[+-]?[0-9]+\.?[0-9]*$/;
+  if (fields.barrier) {
+    const barrier = values.barrier.trim();
+    if (!barrier && fields.barrierRequired) return fields.digitBarrier ? "Choose a predicted digit from 0 to 9." : "Enter the barrier required for this trade.";
+    if (barrier && (!barrierPattern.test(barrier) || barrier.length > 20)) return "Enter the barrier as a number, optionally beginning with + or -.";
+    if (barrier && fields.digitBarrier && !/^[0-9]$/.test(barrier)) return "Choose a predicted digit from 0 to 9.";
+  }
+  if (fields.barrier2) {
+    const barrier = values.barrier2.trim();
+    if (!barrier && fields.barrier2Required) return "Enter the second barrier required for this trade.";
+    if (barrier && (!barrierPattern.test(barrier) || barrier.length > 20)) return "Enter the second barrier as a number, optionally beginning with + or -.";
+  }
+
+  const multiplierError = validateRequiredPositiveOption("multiplier", values.multiplier, fields.multiplierRequired, contract?.multiplier_range);
+  if (multiplierError) return multiplierError;
+  const growthError = validateRequiredPositiveOption("growth rate", values.growthRate, fields.growthRateRequired, contract?.growth_rate_range);
+  if (growthError) return growthError;
+  const selectedTickError = validateRequiredPositiveOption("selected tick", values.selectedTick, fields.selectedTickRequired, undefined, true);
+  if (selectedTickError) return selectedTickError;
+  const payoutError = validateOptionalPositive("payout per point", values.payoutPerPoint);
+  if (payoutError) return payoutError;
+  const stopLossError = validateOptionalPositive("stop loss", values.stopLoss);
+  if (stopLossError) return stopLossError;
+  const takeProfitError = validateOptionalPositive("take profit", values.takeProfit);
+  if (takeProfitError) return takeProfitError;
+
+  if (values.cancellation.trim() && contract?.cancellation_range?.length) {
+    const allowed = contract.cancellation_range.map(String);
+    if (!allowed.includes(values.cancellation.trim())) return "Choose one of the cancellation durations offered for this multiplier trade.";
+  }
+  return "";
+}
+
+function validateRequiredPositiveOption(label: string, raw: string, required: boolean, options?: number[], integer = false) {
+  if (!raw.trim()) return required ? `Choose a ${label} before requesting a price.` : "";
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0 || (integer && !Number.isInteger(value))) return `Enter a valid ${label} greater than zero.`;
+  if (options?.length && !options.some((option) => Math.abs(option - value) < Number.EPSILON)) {
+    return `Choose an available ${label}: ${options.join(", ")}.`;
+  }
+  return "";
+}
+
+function validateOptionalPositive(label: string, raw: string) {
+  if (!raw.trim()) return "";
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? "" : `Enter a valid ${label} greater than zero.`;
+}
+
+function parseDurationLimit(raw?: string) {
+  const match = raw?.trim().match(/^(\d+)([tsmhd])?$/i);
+  return match ? { value: Number(match[1]), unit: (match[2] || "").toLowerCase() } : undefined;
+}
+
+function durationComparable(selectedUnit: string, limitUnit: string) {
+  return !limitUnit || selectedUnit === limitUnit;
 }
 
 function assignText(target: Record<string, unknown>, key: string, value: string) {
@@ -313,27 +474,42 @@ function assignNumber(target: Record<string, unknown>, key: string, value: strin
 
 function contractFields(contract?: ContractOption) {
   const contractType = contract?.contract_type || "";
+  const required = new Set(contract?.synex_rules?.required_fields || []);
+  const optional = new Set(contract?.synex_rules?.optional_fields || []);
+  const hasServerRules = Boolean(contract?.synex_rules);
   const digitBarrier = ["DIGITDIFF", "DIGITMATCH", "DIGITOVER", "DIGITUNDER"].includes(contractType);
   const barrierCount = contract?.barriers ?? 0;
   const twoBarriers = barrierCount >= 2 || ["RANGE", "UPORDOWN", "EXPIRYRANGE", "EXPIRYRANGEE", "EXPIRYMISS", "EXPIRYMISSE"].includes(contractType);
-  const barrier = barrierCount >= 1 || digitBarrier || twoBarriers || [
+  const fallbackBarrier = barrierCount >= 1 || digitBarrier || twoBarriers || [
     "HIGHER", "LOWER", "ONETOUCH", "NOTOUCH", "TURBOSLONG", "TURBOSSHORT",
   ].includes(contractType);
-  const multiplier = Boolean(contract?.multiplier_range?.length) || ["MULTUP", "MULTDOWN"].includes(contractType);
-  const accumulator = Boolean(contract?.growth_rate_range?.length) || contractType === "ACCU";
+  const fallbackMultiplier = Boolean(contract?.multiplier_range?.length) || ["MULTUP", "MULTDOWN"].includes(contractType);
+  const fallbackAccumulator = Boolean(contract?.growth_rate_range?.length) || contractType === "ACCU";
+  const fallbackSelectedTick = ["TICKHIGH", "TICKLOW"].includes(contractType);
   const vanilla = ["VANILLALONGCALL", "VANILLALONGPUT"].includes(contractType);
   const barrierChoices = contract?.available_barriers || contract?.barrier_choices || contract?.last_digit_range || [];
+  const exposes = (field: string, fallback: boolean) => hasServerRules ? required.has(field) || optional.has(field) : fallback;
+  const requires = (field: string, fallback: boolean) => hasServerRules ? required.has(field) : fallback;
+  const barrier = exposes("barrier", fallbackBarrier);
+  const multiplier = exposes("multiplier", fallbackMultiplier);
+  const accumulator = exposes("growth_rate", fallbackAccumulator);
+  const selectedTick = exposes("selected_tick", fallbackSelectedTick);
 
   return {
     barrier,
-    barrier2: twoBarriers,
+    barrierRequired: requires("barrier", fallbackBarrier),
+    barrier2: exposes("barrier2", twoBarriers),
+    barrier2Required: requires("barrier2", twoBarriers),
     digitBarrier,
     multiplier,
+    multiplierRequired: requires("multiplier", fallbackMultiplier),
     growthRate: accumulator,
-    cancellation: Boolean(contract?.cancellation_range?.length) || multiplier,
-    limitOrder: multiplier || accumulator,
-    payoutPerPoint: Boolean(contract?.payout_choices?.length) || vanilla || contractType.startsWith("TURBOS"),
-    selectedTick: ["TICKHIGH", "TICKLOW"].includes(contractType),
+    growthRateRequired: requires("growth_rate", fallbackAccumulator),
+    cancellation: exposes("cancellation", Boolean(contract?.cancellation_range?.length) || fallbackMultiplier),
+    limitOrder: exposes("limit_order.stop_loss", fallbackMultiplier || fallbackAccumulator) || exposes("limit_order.take_profit", fallbackMultiplier || fallbackAccumulator),
+    payoutPerPoint: exposes("payout_per_point", Boolean(contract?.payout_choices?.length) || vanilla || contractType.startsWith("TURBOS")),
+    selectedTick,
+    selectedTickRequired: requires("selected_tick", fallbackSelectedTick),
     barrierHint: digitBarrier ? "0 to 9" : String(barrierChoices[0] ?? "+0.10 or 123.45"),
     secondBarrierHint: String(barrierChoices[1] ?? "-0.10 or 120.00"),
     multiplierHint: String(contract?.multiplier_range?.[0] ?? 100),

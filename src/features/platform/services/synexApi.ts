@@ -228,6 +228,9 @@ export type ContractOption = {
   expiry_type?: string;
   min_contract_duration?: string;
   max_contract_duration?: string;
+  min_stake?: number | null;
+  max_stake?: number | null;
+  default_stake?: number;
   available_barriers?: Array<string | number>;
   barrier_choices?: Array<string | number>;
   cancellation_range?: Array<string | number>;
@@ -235,6 +238,16 @@ export type ContractOption = {
   last_digit_range?: number[];
   multiplier_range?: number[];
   payout_choices?: number[];
+  synex_rules?: {
+    family: string;
+    required_fields: string[];
+    optional_fields: string[];
+    availability: {
+      symbol: "returned_by_contracts_for";
+      account: "checked_by_deriv_proposal";
+      jurisdiction: "checked_by_deriv_proposal";
+    };
+  };
 };
 
 export type OrderStatus = {
@@ -570,7 +583,7 @@ export function apiErrorMessage(error: unknown) {
     if (error.code === "real_money_confirmation_required") return "Tick the confirmation box first — this trade uses real money you could lose.";
     if (code.includes("insufficient") || code.includes("balance")) return "There isn't enough balance in this account for that trade.";
     if (code.includes("market") && code.includes("closed")) return "This market is closed right now. Pick another market or come back later.";
-    if (code.includes("price") || code.includes("proposal")) return "That price has moved on. Get a fresh price and try again.";
+    if (error.message.trim() && !error.message.startsWith("Request failed with status")) return error.message;
     if (error.status === 403) return "You don’t have access to this action.";
     if (error.status === 404) return "We couldn’t find what you requested.";
     if (error.status === 409) return "This action conflicts with the latest account information. Refresh and try again.";

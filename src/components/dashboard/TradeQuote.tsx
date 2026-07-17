@@ -25,7 +25,7 @@ export default function TradeQuote({
 }: Props) {
   const maximumLoss = proposal.maximum_loss ?? proposal.ask_price;
   const potentialProfit = proposal.payout === undefined ? undefined : proposal.payout - proposal.ask_price;
-  const canConfirm = secondsRemaining > 0 && !disabled && (isVirtual || realMoneyConfirmed);
+  const canConfirm = !disabled && (secondsRemaining <= 0 || isVirtual || realMoneyConfirmed);
 
   return (
     <>
