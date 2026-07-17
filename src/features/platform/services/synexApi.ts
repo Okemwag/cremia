@@ -202,11 +202,16 @@ export type OrderReceipt = {
   requested_amount: number;
   duration?: number;
   duration_unit?: string;
+  date_expiry?: number;
   barrier?: string;
+  barrier2?: string;
+  cancellation?: string;
   multiplier?: number;
   growth_rate?: number;
   stop_loss?: number;
   take_profit?: number;
+  payout_per_point?: number;
+  selected_tick?: number;
   longcode: string;
   contract_id?: number;
   provider_transaction_id?: number;
@@ -219,6 +224,17 @@ export type ContractOption = {
   contract_type: string;
   contract_display?: string;
   sentiment?: string;
+  barriers?: number;
+  expiry_type?: string;
+  min_contract_duration?: string;
+  max_contract_duration?: string;
+  available_barriers?: Array<string | number>;
+  barrier_choices?: Array<string | number>;
+  cancellation_range?: Array<string | number>;
+  growth_rate_range?: number[];
+  last_digit_range?: number[];
+  multiplier_range?: number[];
+  payout_choices?: number[];
 };
 
 export type OrderStatus = {

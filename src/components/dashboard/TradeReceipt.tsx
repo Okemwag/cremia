@@ -31,6 +31,17 @@ export default function TradeReceipt({ receipt, feeDisclosure }: { receipt: Orde
         <ReceiptRow label="Synex fee" value={formatMoney(receipt.synex_fee, receipt.currency)} />
         {receipt.contract_id ? <ReceiptRow label="Deriv contract" value={String(receipt.contract_id)} /> : null}
         {receipt.provider_transaction_id ? <ReceiptRow label="Deriv transaction" value={String(receipt.provider_transaction_id)} /> : null}
+        {receipt.duration ? <ReceiptRow label="Duration" value={`${receipt.duration} ${receipt.duration_unit || ""}`.trim()} /> : null}
+        {receipt.date_expiry ? <ReceiptRow label="Expiry" value={new Date(receipt.date_expiry * 1000).toLocaleString()} /> : null}
+        {receipt.barrier ? <ReceiptRow label="Barrier" value={receipt.barrier} /> : null}
+        {receipt.barrier2 ? <ReceiptRow label="Second barrier" value={receipt.barrier2} /> : null}
+        {receipt.cancellation ? <ReceiptRow label="Cancellation" value={receipt.cancellation} /> : null}
+        {receipt.multiplier ? <ReceiptRow label="Multiplier" value={String(receipt.multiplier)} /> : null}
+        {receipt.growth_rate ? <ReceiptRow label="Growth rate" value={String(receipt.growth_rate)} /> : null}
+        {receipt.selected_tick ? <ReceiptRow label="Selected tick" value={String(receipt.selected_tick)} /> : null}
+        {receipt.payout_per_point ? <ReceiptRow label="Payout per point" value={String(receipt.payout_per_point)} /> : null}
+        {receipt.stop_loss ? <ReceiptRow label="Stop loss" value={formatMoney(receipt.stop_loss, receipt.currency)} /> : null}
+        {receipt.take_profit ? <ReceiptRow label="Take profit" value={formatMoney(receipt.take_profit, receipt.currency)} /> : null}
         <ReceiptRow label="Submitted" value={new Date(receipt.created_at).toLocaleString()} />
       </dl>
 

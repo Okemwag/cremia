@@ -9,6 +9,7 @@ export type WorkspaceValue = {
   setActiveLoginID: (loginID: string) => void;
   loadingAccounts: boolean;
   refreshAccounts: () => Promise<void>;
+  refreshOnboarding: () => Promise<OnboardingStatus>;
   accountStreamStatus: AccountStreamStatus;
   lastTransaction?: AccountTransactionEvent;
   positionUpdates: Record<number, AccountPositionEvent>;

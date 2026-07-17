@@ -34,6 +34,7 @@ export type AccountPositionEvent = {
   current_spot: number;
   profit: number;
   profit_percentage: number;
+  payout?: number;
   currency: string;
   is_expired: boolean;
   is_sold: boolean;
@@ -71,6 +72,7 @@ function parsePosition(value: unknown): AccountPositionEvent | undefined {
   if (!isRecord(value) || !isNumber(value.contract_id) || typeof value.contract_type !== "string"
     || typeof value.symbol !== "string" || typeof value.status !== "string" || !isNumber(value.buy_price)
     || !isNumber(value.current_spot) || !isNumber(value.profit) || !isNumber(value.profit_percentage)
+    || (value.payout !== undefined && !isNumber(value.payout))
     || typeof value.currency !== "string" || typeof value.is_expired !== "boolean" || typeof value.is_sold !== "boolean") return undefined;
   return value as AccountPositionEvent;
 }
@@ -117,6 +119,7 @@ export function mergePositionUpdate(positions: PortfolioContract[], update: Acco
     status: update.status,
     is_expired: update.is_expired,
     is_sold: update.is_sold,
+    ...(update.payout !== undefined ? { payout: update.payout } : {}),
   };
   const index = positions.findIndex((position) => position.contract_id === update.contract_id);
   if (index < 0) return [...positions, next];

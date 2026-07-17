@@ -24,8 +24,6 @@ import { WorkspaceContext, type WorkspaceValue } from "../context/WorkspaceConte
 import { accountStreamLabel, useAccountStream } from "../services/accountStream";
 import { apiErrorMessage, type OnboardingStatus, type SynexAccount, useSynexAPI } from "../services/synexApi";
 
-const onboardingItem = { to: "/app/onboarding", label: "Get started", icon: UserRoundCheck, end: false };
-
 const baseNavItems = [
   { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/app/markets", label: "Markets", icon: BarChart3 },
@@ -60,6 +58,12 @@ export default function PlatformShell() {
   const [accountError, setAccountError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [onboarding, setOnboarding] = useState<OnboardingStatus>();
+
+  const refreshOnboarding = useCallback(async () => {
+    const next = await api.onboardingStatus();
+    setOnboarding(next);
+    return next;
+  }, [api]);
 
   const refreshAccounts = useCallback(async () => {
     setLoadingAccounts(true);
@@ -124,11 +128,12 @@ export default function PlatformShell() {
     setActiveLoginID,
     loadingAccounts,
     refreshAccounts,
+    refreshOnboarding,
     accountStreamStatus: accountStream.status,
     lastTransaction: accountStream.lastTransaction,
     positionUpdates: accountStream.positionUpdates,
     onboarding,
-  }), [accounts, activeAccount, activeLoginID, loadingAccounts, refreshAccounts, accountStream.status, accountStream.lastTransaction, accountStream.positionUpdates, onboarding]);
+  }), [accounts, activeAccount, activeLoginID, loadingAccounts, refreshAccounts, refreshOnboarding, accountStream.status, accountStream.lastTransaction, accountStream.positionUpdates, onboarding]);
 
   if (isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <Navigate to="/login?returnTo=/app" replace />;
@@ -136,6 +141,12 @@ export default function PlatformShell() {
   // Until setup is complete, "Get started" sits right under Overview with a
   // reminder dot; afterwards it drops to the quieter spot above Learn.
   const setupIncomplete = Boolean(onboarding && !onboarding.ready_for_live);
+  const onboardingItem = {
+    to: "/app/onboarding",
+    label: onboarding?.deriv_connected ? "Live trading setup" : "Get started",
+    icon: UserRoundCheck,
+    end: false,
+  };
   const navItems = setupIncomplete
     ? [baseNavItems[0], onboardingItem, ...baseNavItems.slice(1)]
     : [...baseNavItems.slice(0, 8), onboardingItem, ...baseNavItems.slice(8)];
