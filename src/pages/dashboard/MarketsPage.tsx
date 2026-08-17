@@ -15,6 +15,8 @@ export default function MarketsPage() {
   const [candles, setCandles] = useState<Candle[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [hasEarlier, setHasEarlier] = useState(true);
   const [error, setError] = useState("");
   const [serverTime, setServerTime] = useState<number>();
   const [tradingTimes, setTradingTimes] = useState<unknown>();
@@ -34,8 +36,34 @@ export default function MarketsPage() {
   useEffect(() => {
     if (!selected) return;
     setCandles([]);
-    void api.candles(selected.symbol, 300, 160).then(setCandles).catch((reason) => setError(apiErrorMessage(reason)));
+    setHasEarlier(true);
+    void api.candles(selected.symbol, 300, 160).then((items) => setCandles(items.sort((a, b) => a.epoch - b.epoch))).catch((reason) => setError(apiErrorMessage(reason)));
   }, [api, selected]);
+
+  useEffect(() => {
+    const tick = live.tick;
+    if (!tick || tick.symbol !== selected?.symbol) return;
+    const epoch = Math.floor(tick.epoch / 300) * 300;
+    setCandles((current) => {
+      const lastCandle = current[current.length - 1];
+      if (!lastCandle || epoch > lastCandle.epoch) {
+        return [...current, { epoch, open: tick.quote, high: tick.quote, low: tick.quote, close: tick.quote }].slice(-500);
+      }
+      if (epoch !== lastCandle.epoch) return current;
+      return [...current.slice(0, -1), { ...lastCandle, high: Math.max(lastCandle.high, tick.quote), low: Math.min(lastCandle.low, tick.quote), close: tick.quote }];
+    });
+  }, [live.tick, selected?.symbol]);
+
+  const loadEarlier = async () => {
+    if (!selected || !candles.length || loadingEarlier) return;
+    setLoadingEarlier(true); setError("");
+    try {
+      const earlier = await api.candles(selected.symbol, 300, 160, candles[0].epoch - 1);
+      setHasEarlier(earlier.length > 0);
+      setCandles((current) => Array.from(new Map([...earlier, ...current].map((item) => [item.epoch, item])).values()).sort((a, b) => a.epoch - b.epoch));
+    } catch (reason) { setError(apiErrorMessage(reason)); }
+    finally { setLoadingEarlier(false); }
+  };
 
   const filtered = useMemo(
     () => symbols.filter((item) => `${item.display_name} ${item.symbol} ${item.market}`.toLowerCase().includes(search.toLowerCase())).slice(0, 80),
@@ -70,7 +98,8 @@ export default function MarketsPage() {
             <div><p className="text-xs font-semibold uppercase tracking-[.14em] text-black/30">{selected?.market_display_name || "Market"}</p><h2 className="mt-2 text-3xl font-medium tracking-[-.05em]">{selected?.display_name || "Pick a market"}</h2><p className="mt-2 text-sm text-black/35">{selected?.symbol}</p></div>
             <div className="sm:text-right"><div className="flex items-center gap-2 sm:justify-end"><span className={`h-2 w-2 rounded-full ${live.status === "connected" ? "bg-[#75ad62]" : "animate-pulse bg-amber-500"}`}/><span className="text-xs font-semibold text-black/35">{marketStreamLabel(live.status)}</span></div><p className="mt-2 text-2xl font-medium tracking-[-.04em] tabular-nums">{formatMarketQuote(live.tick?.quote ?? last, live.tick?.pip_size ?? selected?.pip ?? 2)}</p><p className={`mt-1 text-sm font-semibold ${change >= 0 ? "text-[#568f47]" : "text-red-600"}`}>{change >= 0 ? "+" : ""}{change.toFixed(2)}%</p></div>
           </div>
-          <Sparkline candles={candles} className="mt-9 h-[360px] w-full" />
+          <div className="mt-7 flex justify-end"><button type="button" disabled={!hasEarlier || loadingEarlier || !candles.length} onClick={() => void loadEarlier()} className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold disabled:opacity-35">{loadingEarlier ? "Loading…" : hasEarlier ? "Load earlier prices" : "Start of available history"}</button></div>
+          <Sparkline candles={candles} className="mt-4 h-[360px] w-full" />
           {selected && <div className="mt-7 border-t border-black/[.07] pt-6">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div><p className="text-xs font-medium text-black/35">Price chart · 5-minute view</p><p className="mt-1 text-xs font-medium text-black/35">{scheduleLabel(selectedSchedule)}{serverTime ? ` · Deriv time ${new Date(serverTime * 1000).toLocaleTimeString()}` : ""}</p></div>

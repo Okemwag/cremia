@@ -163,6 +163,7 @@ export type ActiveSymbol = {
   submarket?: string;
   submarket_display_name?: string;
   exchange_is_open?: number;
+  is_trading_suspended?: number;
   pip?: number;
 };
 
@@ -197,6 +198,7 @@ export type MarketHistoryQuery = {
   start?: number;
   end?: number | "latest";
   granularity?: number;
+  adjustStartTime?: boolean;
 };
 
 export type TradeRiskLimits = {
@@ -469,13 +471,15 @@ export class SynexAPI {
         submarket: item.submarket,
         submarket_display_name: item.submarket_display_name,
         exchange_is_open: item.exchange_is_open,
+        is_trading_suspended: item.is_trading_suspended,
         pip: item.pip_size ?? item.pip,
       }];
     });
   }
 
-  async candles(symbol: string, granularity = 300, count = 120) {
+  async candles(symbol: string, granularity = 300, count = 120, end: number | "latest" = "latest") {
     const params = new URLSearchParams({ symbol, granularity: String(granularity), count: String(count) });
+    params.set("end", String(end));
     const result = await this.request<{ data: Candle[] | { candles?: Candle[] } }>(`/v1/markets/candles?${params}`, {}, false);
     return Array.isArray(result.data) ? result.data : result.data.candles || [];
   }
@@ -491,6 +495,7 @@ export class SynexAPI {
     if (query.style === "candles" && query.granularity !== undefined) {
       params.set("granularity", String(query.granularity));
     }
+    if (query.adjustStartTime !== undefined) params.set("adjust_start_time", query.adjustStartTime ? "1" : "0");
     const result = await this.request<{ data: unknown }>(`/v1/markets/history?${params}`, {}, false);
     return result.data;
   }
@@ -583,13 +588,6 @@ export class SynexAPI {
   async position(loginID: string, contractID: number) {
     const params = new URLSearchParams({ login_id: loginID, contract_id: String(contractID) });
     const result = await this.request<{ data: Record<string, unknown> }>(`/v1/positions/status?${params}`);
-    return result.data;
-  }
-
-  async limits(loginID: string) {
-    const result = await this.request<{ data: Record<string, unknown> }>(
-      `/v1/trading/limits?login_id=${encodeURIComponent(loginID)}`,
-    );
     return result.data;
   }
 

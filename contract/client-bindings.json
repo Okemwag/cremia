@@ -1,0 +1,15 @@
+{
+  "language": "typescript",
+  "bindings": [
+    {"contract":"MarketSymbol","type":"ActiveSymbol","source":"src/features/platform/services/synexApi.ts","fields":{"underlying_symbol":"symbol","underlying_symbol_name":"display_name"}},
+    {"contract":"Candle","type":"Candle","source":"src/features/platform/services/synexApi.ts"},
+    {"contract":"ContractOption","type":"ContractOption","source":"src/features/platform/services/synexApi.ts"},
+    {"contract":"Proposal","type":"Proposal","source":"src/features/platform/services/synexApi.ts"},
+    {"contract":"TradeReceipt","type":"OrderReceipt","source":"src/features/platform/services/synexApi.ts"},
+    {"contract":"Position","type":"PortfolioContract","source":"src/features/platform/services/synexApi.ts"},
+    {"contract":"Wallet","type":"DerivWallet","source":"src/features/platform/services/synexApi.ts"},
+    {"contract":"PaymentAgent","type":"PaymentAgent","source":"src/features/platform/services/synexApi.ts"},
+    {"contract":"AutomationStrategy","type":"AutomationStrategy","source":"src/features/platform/services/synexApi.ts"},
+    {"contract":"AutomationRun","type":"AutomationRun","source":"src/features/platform/services/synexApi.ts"}
+  ]
+}
