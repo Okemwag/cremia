@@ -64,6 +64,25 @@ export type Tick = {
   pip_size?: number;
 };
 
+export type MarketHistoryQuery = {
+  symbol: string;
+  style?: "ticks" | "candles";
+  count?: number;
+  start?: number;
+  end?: number | "latest";
+  granularity?: number;
+};
+
+export type TradeRiskLimits = {
+  login_id: string;
+  currency: string;
+  max_stake: number;
+  daily_loss_limit: number;
+  session_loss_limit: number;
+  session_started_at: string;
+  updated_at: string;
+};
+
 export type WatchlistItem = {
   symbol: string;
   display_name: string;
@@ -321,6 +340,40 @@ export class SynexAPI {
     return Array.isArray(result.data) ? result.data : result.data.candles || [];
   }
 
+  async marketHistory(query: MarketHistoryQuery) {
+    const params = new URLSearchParams({
+      symbol: query.symbol,
+      style: query.style || "ticks",
+      count: String(query.count || 500),
+      end: String(query.end ?? "latest"),
+    });
+    if (query.start !== undefined) params.set("start", String(query.start));
+    if (query.style === "candles" && query.granularity !== undefined) {
+      params.set("granularity", String(query.granularity));
+    }
+    const result = await this.request<{ data: unknown }>(`/v1/markets/history?${params}`, {}, false);
+    return result.data;
+  }
+
+  async contractCategories() {
+    const result = await this.request<{ data: unknown }>("/v1/markets/contract-categories", {}, false);
+    return result.data;
+  }
+
+  async serverTime() {
+    const result = await this.request<{ data: number }>("/v1/system/time", {}, false);
+    return result.data;
+  }
+
+  async tradingTimes(date = "today") {
+    const result = await this.request<{ data: unknown }>(
+      `/v1/markets/trading-times?date=${encodeURIComponent(date)}`,
+      {},
+      false,
+    );
+    return result.data;
+  }
+
   async tick(symbol: string) {
     const result = await this.request<{ data: Tick }>(
       `/v1/markets/tick?symbol=${encodeURIComponent(symbol)}`,
@@ -383,6 +436,26 @@ export class SynexAPI {
       `/v1/trading/limits?login_id=${encodeURIComponent(loginID)}`,
     );
     return result.data;
+  }
+
+  async riskLimits(loginID: string) {
+    return this.request<TradeRiskLimits>(
+      `/v1/trading/risk-limits?login_id=${encodeURIComponent(loginID)}`,
+    );
+  }
+
+  async updateRiskLimits(input: Pick<TradeRiskLimits, "login_id" | "max_stake" | "daily_loss_limit" | "session_loss_limit">) {
+    return this.request<TradeRiskLimits>("/v1/trading/risk-limits", {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async resetRiskSession(loginID: string) {
+    return this.request<TradeRiskLimits>("/v1/trading/risk-limits/reset-session", {
+      method: "POST",
+      body: JSON.stringify({ login_id: loginID }),
+    });
   }
 
   async statement(loginID: string) {
@@ -581,6 +654,10 @@ export function apiErrorMessage(error: unknown) {
     if (error.code === "account_order_under_review") return "A recent trade on this account is still being confirmed. Wait for it to finish before placing another.";
     if (error.code === "order_rejected") return "Deriv didn't accept this trade. Get a fresh price and try again.";
     if (error.code === "real_money_confirmation_required") return "Tick the confirmation box first — this trade uses real money you could lose.";
+    if (error.code === "stake_limit_exceeded") return "This trade is above the maximum stake you set for this account.";
+    if (error.code === "daily_loss_limit_exceeded") return "This trade could take you beyond the daily loss limit you set.";
+    if (error.code === "session_loss_limit_exceeded") return "This trade could take you beyond the current session loss limit you set.";
+    if (error.code === "risk_check_unavailable") return "Your trading limits could not be checked, so no order was placed. Try again shortly.";
     if (code.includes("insufficient") || code.includes("balance")) return "There isn't enough balance in this account for that trade.";
     if (code.includes("market") && code.includes("closed")) return "This market is closed right now. Pick another market or come back later.";
     if (error.message.trim() && !error.message.startsWith("Request failed with status")) return error.message;

@@ -16,13 +16,19 @@ export default function MarketsPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-	const live = useMarketStream(selected?.symbol || "");
+  const [serverTime, setServerTime] = useState<number>();
+  const [tradingTimes, setTradingTimes] = useState<unknown>();
+  const [contractCategories, setContractCategories] = useState<unknown>();
+  const live = useMarketStream(selected?.symbol || "");
 
   useEffect(() => {
     void api.symbols()
       .then((items) => { setSymbols(items); setSelected(items[0]); })
       .catch((reason) => setError(apiErrorMessage(reason)))
       .finally(() => setLoading(false));
+    void api.serverTime().then(setServerTime).catch(() => undefined);
+    void api.tradingTimes().then(setTradingTimes).catch(() => undefined);
+    void api.contractCategories().then(setContractCategories).catch(() => undefined);
   }, [api]);
 
   useEffect(() => {
@@ -38,10 +44,12 @@ export default function MarketsPage() {
   const first = candles[0]?.close;
   const last = candles[candles.length - 1]?.close;
   const change = first && last ? ((last - first) / first) * 100 : 0;
+  const selectedSchedule = selected ? findSymbolSchedule(tradingTimes, selected.symbol) : undefined;
+  const contractCategoryCount = collectionSize(contractCategories);
 
   return (
     <>
-      <PageHeader eyebrow="Live prices" title="Markets" description="Browse every market you can trade — forex, indices, commodities, crypto and more. What's available depends on your Deriv account and where you live." />
+      <PageHeader eyebrow="Live prices" title="Markets" description={`Browse every market you can trade — forex, indices, commodities, crypto and more.${contractCategoryCount ? ` Deriv currently lists ${contractCategoryCount} contract categories.` : ""} What's available depends on your Deriv account and where you live.`} />
       {error && <div className="mt-6"><Feedback>{error}</Feedback></div>}
       <div className="mt-8 grid gap-4 xl:grid-cols-[360px_1fr]">
         <Surface className="overflow-hidden">
@@ -63,9 +71,56 @@ export default function MarketsPage() {
             <div className="sm:text-right"><div className="flex items-center gap-2 sm:justify-end"><span className={`h-2 w-2 rounded-full ${live.status === "connected" ? "bg-[#75ad62]" : "animate-pulse bg-amber-500"}`}/><span className="text-xs font-semibold text-black/35">{marketStreamLabel(live.status)}</span></div><p className="mt-2 text-2xl font-medium tracking-[-.04em] tabular-nums">{formatMarketQuote(live.tick?.quote ?? last, live.tick?.pip_size ?? selected?.pip ?? 2)}</p><p className={`mt-1 text-sm font-semibold ${change >= 0 ? "text-[#568f47]" : "text-red-600"}`}>{change >= 0 ? "+" : ""}{change.toFixed(2)}%</p></div>
           </div>
           <Sparkline candles={candles} className="mt-9 h-[360px] w-full" />
-          {selected && <div className="mt-7 flex items-center justify-between border-t border-black/[.07] pt-6"><p className="text-xs font-medium text-black/35">Price chart · 5-minute view</p><Link to={`/app/trade?symbol=${encodeURIComponent(selected.symbol)}`} className="inline-flex items-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white">Trade this market <ArrowRight size={15}/></Link></div>}
+          {selected && <div className="mt-7 border-t border-black/[.07] pt-6">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div><p className="text-xs font-medium text-black/35">Price chart · 5-minute view</p><p className="mt-1 text-xs font-medium text-black/35">{scheduleLabel(selectedSchedule)}{serverTime ? ` · Deriv time ${new Date(serverTime * 1000).toLocaleTimeString()}` : ""}</p></div>
+              <Link to={`/app/trade?symbol=${encodeURIComponent(selected.symbol)}`} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white">Trade this market <ArrowRight size={15}/></Link>
+            </div>
+          </div>}
         </Surface>
       </div>
     </>
   );
+}
+
+function findSymbolSchedule(value: unknown, symbol: string): Record<string, unknown> | undefined {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const match = findSymbolSchedule(item, symbol);
+      if (match) return match;
+    }
+    return undefined;
+  }
+  if (!value || typeof value !== "object") return undefined;
+  const object = value as Record<string, unknown>;
+  if (object.symbol === symbol || object.underlying_symbol === symbol) return object;
+  for (const nested of Object.values(object)) {
+    const match = findSymbolSchedule(nested, symbol);
+    if (match) return match;
+  }
+  return undefined;
+}
+
+function scheduleLabel(schedule?: Record<string, unknown>) {
+  if (!schedule) return "Schedule unavailable";
+  const times = Array.isArray(schedule.times) ? schedule.times : [];
+  const sessions = times.flatMap((item) => {
+    if (typeof item === "string") return [item];
+    if (!item || typeof item !== "object") return [];
+    const value = item as Record<string, unknown>;
+    const open = String(value.open || "");
+    const close = String(value.close || "");
+    return open && close ? [`${open}–${close}`] : [];
+  });
+  return sessions.length ? `Trading today ${sessions.join(", ")}` : "No trading session listed today";
+}
+
+function collectionSize(value: unknown) {
+  if (Array.isArray(value)) return value.length;
+  if (!value || typeof value !== "object") return 0;
+  const object = value as Record<string, unknown>;
+  for (const key of ["available", "categories", "contracts", "items"]) {
+    if (Array.isArray(object[key])) return object[key].length;
+  }
+  return 0;
 }
