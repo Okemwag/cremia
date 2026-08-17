@@ -1,6 +1,7 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import {
   Activity,
+  ArchiveRestore,
   BarChart3,
   Bell,
   Bot,
@@ -23,7 +24,7 @@ import { safeReturnTo } from "../../../config/auth";
 import { isSessionExpiredError } from "../../../config/authMessages";
 import { WorkspaceContext, type WorkspaceValue } from "../context/WorkspaceContext";
 import { accountStreamLabel, useAccountStream } from "../services/accountStream";
-import { apiErrorMessage, type OnboardingStatus, type SynexAccount, useSynexAPI } from "../services/synexApi";
+import { apiErrorMessage, type DerivSystemStatus, type OnboardingStatus, type SynexAccount, useSynexAPI } from "../services/synexApi";
 
 const baseNavItems = [
   { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
@@ -32,6 +33,7 @@ const baseNavItems = [
   { to: "/app/trade", label: "Trade", icon: Zap },
   { to: "/app/portfolio", label: "Portfolio", icon: WalletCards },
   { to: "/app/activity", label: "Activity", icon: Activity },
+  { to: "/app/legacy-history", label: "Legacy history", icon: ArchiveRestore },
   { to: "/app/funding", label: "Funding", icon: Landmark },
   { to: "/app/automation", label: "Automation", icon: Bot },
   { to: "/app/connect", label: "Accounts", icon: Settings },
@@ -60,6 +62,7 @@ export default function PlatformShell() {
   const [accountError, setAccountError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [onboarding, setOnboarding] = useState<OnboardingStatus>();
+  const [systemStatus, setSystemStatus] = useState<DerivSystemStatus>();
 
   const refreshOnboarding = useCallback(async () => {
     const next = await api.onboardingStatus();
@@ -97,6 +100,13 @@ export default function PlatformShell() {
     else setLoadingAccounts(false);
     // The API instance changes only when Auth0's token getter changes.
   }, [isAuthenticated, refreshAccounts]);
+
+  useEffect(() => {
+    const refresh = () => void api.systemStatus().then(setSystemStatus).catch(() => undefined);
+    refresh();
+    const timer = window.setInterval(refresh, 60_000);
+    return () => window.clearInterval(timer);
+  }, [api]);
 
   const activeAccount = accounts.find((item) => item.login_id === activeLoginID);
   const accountStream = useAccountStream(api, activeLoginID);
@@ -217,6 +227,7 @@ export default function PlatformShell() {
             </span>
           </header>
           {accountError && <div className="mx-5 mt-5 rounded-xl border border-red-900/10 bg-red-50 px-4 py-3 text-sm text-red-800 sm:mx-8 lg:mx-10">{accountError}</div>}
+          {systemStatus?.services.deriv.status === "unavailable" && <div className="mx-5 mt-5 rounded-xl border border-amber-900/10 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 sm:mx-8 lg:mx-10">{systemStatus.services.deriv.message}</div>}
           <main className="px-5 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10"><Outlet /></main>
         </div>
       </div>

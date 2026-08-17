@@ -137,6 +137,19 @@ export type AutomationRun = {
 
 export type AutomationEvent = { id: number; event_type: string; payload?: Record<string, unknown>; created_at: string };
 
+export type DerivSystemStatus = {
+  status: "unknown" | "operational" | "unavailable";
+  services: {
+    deriv: {
+      status: "unknown" | "operational" | "unavailable";
+      checked_at?: string;
+      response_milliseconds?: number;
+      consecutive_failures: number;
+      message: string;
+    };
+  };
+};
+
 export type PlatformSession = {
   authenticated: true;
   user: { id: string; email: string };
@@ -490,6 +503,10 @@ export class SynexAPI {
   async serverTime() {
     const result = await this.request<{ data: number }>("/v1/system/time", {}, false);
     return result.data;
+  }
+
+  async systemStatus() {
+    return this.request<DerivSystemStatus>("/v1/system/status", {}, false);
   }
 
   async tradingTimes(date = "today") {
@@ -869,6 +886,33 @@ export class SynexAPI {
 
   async automationSafety() {
     return this.request<{ kill_switch_enabled: boolean }>("/v1/automation/safety");
+  }
+
+  async accountNickname() {
+    return this.request<{ data?: { nickname?: string }; nickname?: string }>("/v1/accounts/nickname");
+  }
+
+  async legacyMigrationStatus() {
+    return this.request<Record<string, unknown>>("/v1/legacy/migration-status");
+  }
+
+  async legacyAccounts() {
+    return this.request<Record<string, unknown>>("/v1/legacy/accounts");
+  }
+
+  async legacyStatement(query: { loginid: string; date_from?: number; date_to?: number; action_type?: string; limit?: number; offset?: number }) {
+    const params = new URLSearchParams({ loginid: query.loginid, limit: String(query.limit || 100), offset: String(query.offset || 0) });
+    if (query.date_from !== undefined) params.set("date_from", String(query.date_from));
+    if (query.date_to !== undefined) params.set("date_to", String(query.date_to));
+    if (query.action_type) params.set("action_type", query.action_type);
+    return this.request<Record<string, unknown>>(`/v1/legacy/statement?${params}`);
+  }
+
+  async applicationMarkupStatistics(operationsKey: string, dateFrom: string, dateTo: string) {
+    const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+    return this.request<Record<string, unknown>>(`/internal/v1/applications/markup-statistics?${params}`, {
+      headers: { "X-Synex-Ops-Key": operationsKey },
+    }, false);
   }
 
   async setAutomationKillSwitch(enabled: boolean) {

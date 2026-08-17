@@ -16,12 +16,14 @@ import {
   TradePage,
 } from "./pages/dashboard";
 import AutomationPage from "./pages/dashboard/AutomationPage";
+import LegacyHistoryPage from "./pages/dashboard/LegacyHistoryPage";
 import LandingPage from "./pages/LandingPage";
 import AuthCallbackPage from "./pages/auth/AuthCallbackPage";
 import LoginPage from "./pages/auth/LoginPage";
 import LegalDocumentPage from "./pages/legal/LegalDocumentPage";
 import LegalIndexPage from "./pages/legal/LegalIndexPage";
 import LegalLayout from "./pages/legal/LegalLayout";
+import OperationsPage from "./pages/operations/OperationsPage";
 
 export default function App() {
   return (
@@ -29,6 +31,7 @@ export default function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      <Route path="/operations" element={<OperationsPage />} />
       <Route path="/legal" element={<LegalLayout />}>
         <Route index element={<LegalIndexPage />} />
         <Route path=":slug" element={<LegalDocumentPage />} />
@@ -43,6 +46,7 @@ export default function App() {
         <Route path="activity" element={<ActivityPage />} />
         <Route path="funding" element={<FundingPage />} />
         <Route path="automation" element={<AutomationPage />} />
+        <Route path="legacy-history" element={<LegacyHistoryPage />} />
         <Route path="connect" element={<ConnectPage />} />
         <Route path="onboarding" element={<OnboardingPage />} />
         <Route path="learn" element={<LearnPage />} />

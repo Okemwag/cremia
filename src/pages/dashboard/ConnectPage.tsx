@@ -18,6 +18,7 @@ export default function ConnectPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [limits, setLimits] = useState<TradeRiskLimits>();
+  const [nickname, setNickname] = useState("");
   const [maxStake, setMaxStake] = useState("0");
   const [dailyLossLimit, setDailyLossLimit] = useState("0");
   const [sessionLossLimit, setSessionLossLimit] = useState("0");
@@ -40,6 +41,11 @@ export default function ConnectPage() {
       setSessionLossLimit(String(value.session_loss_limit));
     }).catch((reason) => setError(apiErrorMessage(reason)));
   }, [activeAccount, api]);
+
+  useEffect(() => {
+    if (!accounts.length) { setNickname(""); return; }
+    void api.accountNickname().then((payload) => setNickname(payload.data?.nickname || payload.nickname || "")).catch(() => setNickname(""));
+  }, [accounts.length, api]);
 
   const connect = async () => {
     setError("");
@@ -119,6 +125,7 @@ export default function ConnectPage() {
   return (
     <>
       <PageHeader eyebrow="Your accounts" title="Trading accounts" description="Link your Deriv account once, then switch between practice and real accounts anytime." action={<button type="button" onClick={() => void connect()} disabled={busy || connecting} className="inline-flex items-center gap-2 rounded-full bg-[#111310] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{connecting ? <LoaderCircle size={15} className="animate-spin"/> : <Plus size={15}/>} {connecting ? "Opening Deriv…" : "Connect Deriv"}</button>} />
+      {nickname && <p className="mt-3 text-sm font-medium text-black/45">Deriv nickname: <b className="text-black/70">{nickname}</b></p>}
       {error && <div className="mt-6"><Feedback>{error}</Feedback></div>}
       {success && <div className="mt-6"><Feedback tone="success">{success}</Feedback></div>}
       {result && resultMessage[result] && <div className="mt-6"><Feedback tone={linked ? "success" : "info"}>{resultMessage[result]}</Feedback></div>}
