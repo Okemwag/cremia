@@ -417,6 +417,56 @@ export type OrderStatus = {
   updated_at: string;
 };
 
+export type BulkContractParameters = {
+  contract_type: string;
+  underlying_symbol: string;
+  amount: number;
+  basis: "stake" | "payout";
+  currency: string;
+  duration?: number;
+  duration_unit?: "t" | "s" | "m" | "h" | "d";
+  date_expiry?: number;
+  multiplier?: number;
+  growth_rate?: number;
+  barrier?: string;
+  barrier2?: string;
+  cancellation?: string;
+  payout_per_point?: number;
+  selected_tick?: number;
+  limit_order?: { stop_loss?: number; take_profit?: number };
+};
+
+export type BulkPurchaseAccount = { account_id: string; token: string };
+
+export type BulkPurchaseTransaction = {
+  account_id: string;
+  contract_id?: number | string;
+  buy_price?: number | string;
+  transaction_id?: number | string;
+  error?: { code: string; message: string };
+};
+
+export type BulkProviderError = { status: number; code: string; message: string; field?: string };
+
+export type BulkPurchaseOperation = {
+  id: string;
+  idempotency_key: string;
+  mode: "demo" | "real";
+  status: "processing" | "succeeded" | "partial" | "failed" | "unknown";
+  account_count: number;
+  symbol: string;
+  contract_type: string;
+  currency: string;
+  amount: number;
+  real_money_confirmed: boolean;
+  request_summary: Record<string, unknown>;
+  response_payload?: { data?: { transactions?: BulkPurchaseTransaction[] }; errors?: BulkProviderError[] };
+  provider_status?: number;
+  error_code?: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export class APIError extends Error {
   status: number;
   code: string;
@@ -910,6 +960,38 @@ export class SynexAPI {
     const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
     return this.request<Record<string, unknown>>(`/internal/v1/applications/markup-statistics?${params}`, {
       headers: { "X-Synex-Ops-Key": operationsKey },
+    }, false);
+  }
+
+  async bulkPurchaseOperations(bulkKey: string, limit = 50) {
+    const result = await this.request<{ items: BulkPurchaseOperation[] }>(`/internal/v1/bulk-purchases/?limit=${limit}`, {
+      headers: { "X-Synex-Bulk-Key": bulkKey },
+    }, false);
+    return result.items;
+  }
+
+  async bulkPurchaseStatus(bulkKey: string, idempotencyKey: string) {
+    const result = await this.request<{ operation: BulkPurchaseOperation }>(`/internal/v1/bulk-purchases/${encodeURIComponent(idempotencyKey)}`, {
+      headers: { "X-Synex-Bulk-Key": bulkKey },
+    }, false);
+    return result.operation;
+  }
+
+  async executeBulkPurchase(
+    bulkKey: string,
+    mode: "demo" | "real",
+    idempotencyKey: string,
+    input: {
+      contract_parameters: BulkContractParameters;
+      accounts: BulkPurchaseAccount[];
+      real_money_confirmed?: boolean;
+      confirmation_text?: string;
+    },
+  ) {
+    return this.request<{ operation: BulkPurchaseOperation; replayed: boolean }>(`/internal/v1/bulk-purchases/${mode}`, {
+      method: "POST",
+      headers: { "X-Synex-Bulk-Key": bulkKey, "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify(input),
     }, false);
   }
 
