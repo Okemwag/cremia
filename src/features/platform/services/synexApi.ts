@@ -11,10 +11,16 @@ export type SynexAccount = {
   landing_company: string;
   is_virtual: boolean;
   connected_at: string;
-  status: "active" | "inactive";
+  status: string;
   balance: number;
   balance_fresh: boolean;
   balance_updated_at?: string;
+  account_type?: "demo" | "real";
+  account_group?: string;
+  jurisdiction?: string;
+  ready_for_trading?: boolean;
+  readiness_missing?: string[];
+  payment_scope?: boolean;
   live?: {
     balance?: number;
     currency?: string;
@@ -22,6 +28,71 @@ export type SynexAccount = {
     fullname?: string;
     loginid?: string;
   };
+};
+
+export type FundingCapabilities = {
+  connected: boolean;
+  scopes: string[];
+  payment_enabled: boolean;
+  reconnect_required: boolean;
+};
+
+export type WalletBalance = { balance: string; input: string; output: string };
+export type DerivWallet = {
+  wallet_id: string;
+  type: "main" | "p2p" | "partner" | "payment_agent";
+  balances: Record<string, WalletBalance>;
+  total_balance?: {
+    converted_to: string;
+    approximate_total_balance: string;
+    approximate_total_input: string;
+    approximate_total_output: string;
+  };
+};
+
+export type WalletTransaction = {
+  request_id: string;
+  transaction_id: number;
+  timestamp: string;
+  category: "deposit" | "withdrawal";
+  channel: "cashier" | "payment_agent";
+  metadata: {
+    transaction_status: string;
+    transaction_gross_amount: string;
+    transaction_net_amount: string;
+    transaction_currency: string;
+    source_wallet_type?: string;
+    destination_wallet_type?: string;
+  };
+};
+
+export type PaymentAgent = {
+  id: number;
+  name?: string | null;
+  nickname?: string | null;
+  information?: string | null;
+  email?: string | null;
+  phone_numbers?: string[] | null;
+  payment_methods?: string[] | null;
+  countries?: string[] | null;
+  urls?: string[] | null;
+  deposit_commission?: number | null;
+  withdrawal_commission?: number | null;
+  withdrawal_minimum?: string | null;
+  withdrawal_maximum?: string | null;
+  currencies?: Array<{
+    currency: string;
+    deposit_commission?: number | null;
+    withdrawal_commission?: number | null;
+    withdrawal_minimum?: string | null;
+    withdrawal_maximum?: string | null;
+  }>;
+};
+
+export type PaymentAgentClientSettings = {
+  deposit_enabled: boolean;
+  withdraw_enabled: boolean;
+  show_real_name: boolean;
 };
 
 export type PlatformSession = {
@@ -411,6 +482,17 @@ export class SynexAPI {
     return result.accounts;
   }
 
+  async createOptionsAccount(accountType: "demo" | "real", realMoneyConfirmed = false) {
+    return this.request<Record<string, unknown>>("/v1/accounts/options", {
+      method: "POST",
+      body: JSON.stringify({ currency: "USD", group: "row", account_type: accountType, real_money_confirmed: realMoneyConfirmed }),
+    });
+  }
+
+  async resetDemoBalance(loginID: string) {
+    return this.request<Record<string, unknown>>(`/v1/accounts/${encodeURIComponent(loginID)}/reset-demo-balance`, { method: "POST" });
+  }
+
   async session() {
     return this.request<PlatformSession>("/v1/auth/session");
   }
@@ -640,7 +722,75 @@ export class SynexAPI {
   }
 
   async fundingMethods() {
-    return this.request<{ status: string; methods: unknown[]; message: string }>("/v1/funding/methods");
+    return this.request<{ status: string; methods: unknown[]; reconnect_required: boolean }>("/v1/funding/methods");
+  }
+
+  async fundingCapabilities() {
+    return this.request<FundingCapabilities>("/v1/funding/capabilities");
+  }
+
+  async wallets(conversionCurrency?: string) {
+    const params = conversionCurrency ? `?conversion_currency=${encodeURIComponent(conversionCurrency)}` : "";
+    return this.request<{ data: DerivWallet[] }>(`/v1/wallets${params}`);
+  }
+
+  async walletTransactions(walletType: DerivWallet["type"], query: Record<string, string | number | undefined> = {}) {
+    const params = new URLSearchParams();
+    Object.entries(query).forEach(([key, value]) => { if (value !== undefined && value !== "") params.set(key, String(value)); });
+    return this.request<{ data: { transactions: WalletTransaction[] }; links: { next?: string | null; prev?: string | null; first?: string | null } }>(
+      `/v1/wallets/${encodeURIComponent(walletType)}/transactions?${params}`,
+    );
+  }
+
+  async paymentAgentStatistics() {
+    return this.request<{ data: { available_countries: string[]; available_currencies: string[] } }>("/v1/payment-agents/statistics");
+  }
+
+  async paymentAgents(currency: string, country = "", page = 1) {
+    const params = new URLSearchParams({ currency, page: String(page), per_page: "25" });
+    if (country) params.set("country", country);
+    return this.request<{ data: PaymentAgent[] }>(`/v1/payment-agents?${params}`);
+  }
+
+  async paymentAgent(id: number | "me") {
+    return this.request<{ data: PaymentAgent }>(`/v1/payment-agents/${encodeURIComponent(String(id))}`);
+  }
+
+  async paymentAgentClientSettings() {
+    return this.request<{ data: PaymentAgentClientSettings }>("/v1/payment-agents/client-settings");
+  }
+
+  async updatePaymentAgentClientSettings(showRealName: boolean) {
+    return this.request<{ data: PaymentAgentClientSettings }>("/v1/payment-agents/client-settings", {
+      method: "PATCH",
+      body: JSON.stringify({ show_real_name: showRealName }),
+    });
+  }
+
+  async paymentAgentTransfer(input: { to_nickname: string; amount: string; currency: string; notes?: string; request_id: string; dry_run?: boolean }) {
+    return this.request<{ data: { status: string; transaction_id?: number | null; client_real_name?: string | null } }>("/v1/payment-agents/transfers", {
+      method: "POST", body: JSON.stringify(input),
+    });
+  }
+
+  async paymentAgentTransferStatus(requestID: string) {
+    return this.request<{ data: { status: string; transaction_id?: number | null } }>(`/v1/payment-agents/transfers/${encodeURIComponent(requestID)}`);
+  }
+
+  async requestWithdrawalCode(input: { agent_id: number; amount: string; currency: string }) {
+    return this.request<{ data: { message: string; next_request_at: number; expires_at: number } }>("/v1/payment-agents/withdrawals/verification-code", {
+      method: "POST", body: JSON.stringify(input),
+    });
+  }
+
+  async paymentAgentWithdrawal(input: { agent_id: number; amount: string; currency: string; verification_code: string; request_id: string; notes?: string }) {
+    return this.request<{ data: { status: string; transaction_id?: number | null } }>("/v1/payment-agents/withdrawals", {
+      method: "POST", body: JSON.stringify(input),
+    });
+  }
+
+  async paymentAgentWithdrawalStatus(requestID: string) {
+    return this.request<{ data: { status: string; transaction_id?: number | null } }>(`/v1/payment-agents/withdrawals/${encodeURIComponent(requestID)}`);
   }
 }
 
