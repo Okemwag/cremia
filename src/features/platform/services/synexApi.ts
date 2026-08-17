@@ -95,6 +95,48 @@ export type PaymentAgentClientSettings = {
   show_real_name: boolean;
 };
 
+export type AutomationStrategy = {
+  id: string;
+  login_id: string;
+  is_virtual: boolean;
+  name: string;
+  symbol: string;
+  contract_type: string;
+  currency: string;
+  amount: number;
+  basis: "stake" | "payout";
+  contract_parameters: Record<string, unknown>;
+  interval_seconds: number;
+  max_trades: number;
+  max_loss: number;
+  max_duration_minutes: number;
+  max_concurrent_positions: number;
+  enabled: boolean;
+};
+
+export type AutomationRun = {
+  id: string;
+  strategy_id: string;
+  strategy_name: string;
+  login_id: string;
+  status: "active" | "paused" | "stopped" | "completed" | "failed";
+  is_virtual: boolean;
+  real_money_confirmed: boolean;
+  trade_count: number;
+  successful_trades: number;
+  failed_trades: number;
+  committed_loss: number;
+  settled_trades: number;
+  realized_profit: number;
+  started_at: string;
+  ended_at?: string;
+  next_execution_at: string;
+  last_error?: string;
+  updated_at: string;
+};
+
+export type AutomationEvent = { id: number; event_type: string; payload?: Record<string, unknown>; created_at: string };
+
 export type PlatformSession = {
   authenticated: true;
   user: { id: string; email: string };
@@ -791,6 +833,46 @@ export class SynexAPI {
 
   async paymentAgentWithdrawalStatus(requestID: string) {
     return this.request<{ data: { status: string; transaction_id?: number | null } }>(`/v1/payment-agents/withdrawals/${encodeURIComponent(requestID)}`);
+  }
+
+  async automationStrategies() {
+    return (await this.request<{ strategies: AutomationStrategy[] }>("/v1/automation/strategies")).strategies;
+  }
+
+  async createAutomationStrategy(input: Record<string, unknown>) {
+    return this.request<AutomationStrategy>("/v1/automation/strategies", { method: "POST", body: JSON.stringify(input) });
+  }
+
+  async updateAutomationStrategy(id: string, input: Record<string, unknown>) {
+    return this.request<AutomationStrategy>(`/v1/automation/strategies/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(input) });
+  }
+
+  async deleteAutomationStrategy(id: string) {
+    return this.request<void>(`/v1/automation/strategies/${encodeURIComponent(id)}`, { method: "DELETE" });
+  }
+
+  async automationRuns(offset = 0) {
+    return (await this.request<{ runs: AutomationRun[] }>(`/v1/automation/runs?limit=100&offset=${offset}`)).runs;
+  }
+
+  async automationRun(id: string) {
+    return this.request<{ run: AutomationRun; events: AutomationEvent[] }>(`/v1/automation/runs/${encodeURIComponent(id)}`);
+  }
+
+  async startAutomation(strategyID: string, realMoneyConfirmed: boolean) {
+    return this.request<AutomationRun>("/v1/automation/runs", { method: "POST", body: JSON.stringify({ strategy_id: strategyID, real_money_confirmed: realMoneyConfirmed }) });
+  }
+
+  async transitionAutomation(runID: string, action: "pause" | "resume" | "stop") {
+    return this.request<AutomationRun>(`/v1/automation/runs/${encodeURIComponent(runID)}/${action}`, { method: "POST" });
+  }
+
+  async automationSafety() {
+    return this.request<{ kill_switch_enabled: boolean }>("/v1/automation/safety");
+  }
+
+  async setAutomationKillSwitch(enabled: boolean) {
+    return this.request<{ kill_switch_enabled: boolean; message: string }>("/v1/automation/kill-switch", { method: "POST", body: JSON.stringify({ enabled }) });
   }
 }
 

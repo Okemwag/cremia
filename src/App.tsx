@@ -15,6 +15,7 @@ import {
   SupportPage,
   TradePage,
 } from "./pages/dashboard";
+import AutomationPage from "./pages/dashboard/AutomationPage";
 import LandingPage from "./pages/LandingPage";
 import AuthCallbackPage from "./pages/auth/AuthCallbackPage";
 import LoginPage from "./pages/auth/LoginPage";
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="portfolio/:contractID" element={<PositionDetailPage />} />
         <Route path="activity" element={<ActivityPage />} />
         <Route path="funding" element={<FundingPage />} />
+        <Route path="automation" element={<AutomationPage />} />
         <Route path="connect" element={<ConnectPage />} />
         <Route path="onboarding" element={<OnboardingPage />} />
         <Route path="learn" element={<LearnPage />} />
