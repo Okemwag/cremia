@@ -83,6 +83,20 @@ export type TradeRiskLimits = {
   updated_at: string;
 };
 
+export type ActivityQuery = {
+  limit?: number;
+  offset?: number;
+  date_from?: number | string;
+  date_to?: number | string;
+  action_type?: "buy" | "sell" | "deposit" | "withdrawal";
+  sort?: "ASC" | "DESC";
+};
+
+export type ActivityResult = {
+  rows: Record<string, unknown>[];
+  count: number;
+};
+
 export type WatchlistItem = {
   symbol: string;
   display_name: string;
@@ -458,18 +472,22 @@ export class SynexAPI {
     });
   }
 
-  async statement(loginID: string) {
+  async statement(loginID: string, query: ActivityQuery = {}): Promise<ActivityResult> {
+    const params = activityParams(loginID, query);
     const result = await this.request<{ data: { transactions?: Record<string, unknown>[] } }>(
-      `/v1/statement?login_id=${encodeURIComponent(loginID)}&limit=100`,
+      `/v1/statement?${params}`,
     );
-    return result.data.transactions || [];
+    const rows = result.data.transactions || [];
+    return { rows, count: Number((result.data as Record<string, unknown>).count || rows.length) };
   }
 
-  async profitTable(loginID: string) {
+  async profitTable(loginID: string, query: ActivityQuery = {}): Promise<ActivityResult> {
+    const params = activityParams(loginID, query);
     const result = await this.request<{ data: { transactions?: Record<string, unknown>[] } }>(
-      `/v1/profit-table?login_id=${encodeURIComponent(loginID)}&limit=100`,
+      `/v1/profit-table?${params}`,
     );
-    return result.data.transactions || [];
+    const rows = result.data.transactions || [];
+    return { rows, count: Number((result.data as Record<string, unknown>).count || rows.length) };
   }
 
   async proposal(input: Record<string, unknown>) {
@@ -629,6 +647,14 @@ export class SynexAPI {
 export function useSynexAPI() {
   const { getAccessTokenSilently } = useAuth0();
   return useMemo(() => new SynexAPI(() => getAccessTokenSilently()), [getAccessTokenSilently]);
+}
+
+function activityParams(loginID: string, query: ActivityQuery) {
+  const params = new URLSearchParams({ login_id: loginID });
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  return params;
 }
 
 export function formatMoney(value: number | undefined, currency = "USD") {
